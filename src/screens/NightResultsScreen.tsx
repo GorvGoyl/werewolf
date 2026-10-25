@@ -1,0 +1,139 @@
+import type { Death, GameState } from "../game/types"
+import { roleName } from "../game/roles"
+import {
+  aliveWolves,
+  alivePlayers,
+  bittenBabyWolfOf,
+  getPlayer,
+  playerName,
+  protectedGuestOf,
+} from "../game/selectors"
+import { causeText } from "../game/text"
+import { ActionBar, Avatar, Button, Callout, Screen, ScreenTitle, ScriptCard, SectionLabel, Stat } from "../components/ui"
+import { joinNames } from "./night"
+import type { ScreenProps } from "./props"
+
+function announcement(state: GameState, deaths: Death[]): string {
+  if (deaths.length === 0) return "Nobody died tonight."
+  const names = deaths.map((d) => playerName(state, d.playerId))
+  return `Tonight, ${joinNames(names)} died.`
+}
+
+function deathsTitle(count: number): string {
+  if (count === 0) return "Nobody died"
+  if (count === 1) return "1 death"
+  return `${count} deaths`
+}
+
+export function NightResultsScreen({ state, dispatch }: ScreenProps) {
+  const rn = state.roleNames
+  const night = state.nightEvents[state.nightEvents.length - 1]
+  const deaths = night?.deaths ?? []
+
+  if (!night) return null
+
+  const protectedGuest = protectedGuestOf(state, night)
+  const saved = getPlayer(state, night.wizardSaved)
+  const bitten = bittenBabyWolfOf(state, night)
+  const hasSecrets = protectedGuest || saved || bitten
+
+  return (
+    <>
+      <Screen>
+        <ScreenTitle
+          eyebrow={`Night ${state.currentNight} is over`}
+          emoji="🌅"
+          title={deathsTitle(deaths.length)}
+          tone="sun"
+        />
+        <ScriptCard
+          lines={["Everyone, open your eyes.", announcement(state, deaths)]}
+          tone="sun"
+        />
+
+        {deaths.length > 0 && (
+          <div className="space-y-2">
+            {deaths.map((death) => (
+              <DeathCard
+                key={death.playerId}
+                state={state}
+                death={death}
+              />
+            ))}
+          </div>
+        )}
+
+        {hasSecrets && <SectionLabel>Only you know</SectionLabel>}
+        {protectedGuest && (
+          <Callout
+            tone="moon"
+            icon="🌹"
+            title={`${protectedGuest.name} was safe at the ${roleName("courtesan", rn)}'s`}>
+            The wolves attacked them, but nobody died.
+          </Callout>
+        )}
+        {saved && (
+          <Callout
+            tone="leaf"
+            icon="💚"
+            title={`The ${roleName("wizard", rn)} saved ${saved.name}`}>
+            The save potion is now used up.
+          </Callout>
+        )}
+        {bitten && (
+          <Callout
+            tone="sun"
+            icon="🐺"
+            title={`${bitten.name} was bitten`}>
+            The {roleName("baby_wolf", rn)} survives and joins the pack next night.
+          </Callout>
+        )}
+
+        <div className="mt-5 flex rounded-2xl border border-white/5 bg-night-800/70 py-3">
+          <Stat
+            value={alivePlayers(state).length}
+            label="Alive"
+            tone="leaf"
+          />
+          <Stat
+            value={state.players.length - alivePlayers(state).length}
+            label="Dead"
+            tone="blood"
+          />
+          <Stat
+            value={aliveWolves(state).length}
+            label="Wolves left"
+            tone="sun"
+          />
+        </div>
+      </Screen>
+      <ActionBar>
+        <Button
+          tone="sun"
+          onClick={() => dispatch({ type: "START_DAY" })}>
+          ☀️ Start Day {state.currentNight}
+        </Button>
+      </ActionBar>
+    </>
+  )
+}
+
+type DeathCardProps = { state: GameState; death: Death }
+
+function DeathCard({ state, death }: DeathCardProps) {
+  const player = getPlayer(state, death.playerId)
+  if (!player) return null
+  return (
+    <div className="flex animate-pop items-center gap-3 rounded-2xl border border-blood-500/25 bg-blood-500/10 px-3.5 py-3">
+      <Avatar name={player.name} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[16px] font-semibold text-mist-100">{player.name}</div>
+        <div className="text-[13px] text-blood-300">{causeText(death.cause, state.roleNames)}</div>
+      </div>
+      <div className="text-right">
+        <div className="text-xl">💀</div>
+        <div className="text-[11px] text-mist-400">{roleName(player.role, state.roleNames)}</div>
+      </div>
+    </div>
+  )
+}

@@ -1,0 +1,162 @@
+@import "tailwindcss";
+
+@theme {
+  --color-night-950: #070816;
+  --color-night-900: #0c0e22;
+  --color-night-850: #11142d;
+  --color-night-800: #161a38;
+  --color-night-700: #1e2347;
+  --color-night-600: #2a3059;
+  --color-night-500: #3a416f;
+
+  --color-mist-100: #eef0ff;
+  --color-mist-200: #d3d7f2;
+  --color-mist-300: #a9afd6;
+  --color-mist-400: #7f86b3;
+  --color-mist-500: #5d6491;
+
+  --color-moon-300: #c9c2ff;
+  --color-moon-400: #a99dff;
+  --color-moon-500: #8b7cf6;
+  --color-moon-600: #7360e8;
+
+  --color-blood-300: #ffa3b3;
+  --color-blood-400: #ff7590;
+  --color-blood-500: #f43f5e;
+  --color-blood-600: #e11d48;
+
+  --color-sun-300: #fcd581;
+  --color-sun-400: #fbbf24;
+  --color-sun-500: #f59e0b;
+  --color-sun-600: #d97706;
+
+  --color-leaf-300: #6ee7b7;
+  --color-leaf-400: #34d399;
+  --color-leaf-500: #10b981;
+  --color-leaf-600: #059669;
+
+  --font-script: "Iowan Old Style", "Palatino Linotype", Palatino, "Noto Serif", Georgia, serif;
+
+  --animate-rise: rise 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-fade: fade 180ms ease-out;
+  --animate-pop: pop 260ms cubic-bezier(0.2, 0.8, 0.2, 1.2);
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: scale(0.92);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}
+
+html {
+  color-scheme: dark;
+  background: var(--color-night-950);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* No body background: it would paint over the .sky layer (the canvas gets the html one) */
+body {
+  margin: 0;
+  min-height: 100dvh;
+  color: var(--color-mist-100);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+}
+
+button {
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+/* Glow behind each part of the game, painted once on a fixed layer */
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--color-night-950);
+  transition: background 600ms ease;
+}
+
+.sky-night {
+  background:
+    radial-gradient(1.6px 1.6px at 12% 22%, rgb(255 255 255 / 0.7), transparent 70%),
+    radial-gradient(1.3px 1.3px at 78% 16%, rgb(255 255 255 / 0.6), transparent 70%),
+    radial-gradient(1.8px 1.8px at 64% 34%, rgb(255 255 255 / 0.45), transparent 70%),
+    radial-gradient(1.2px 1.2px at 30% 44%, rgb(255 255 255 / 0.4), transparent 70%),
+    radial-gradient(1.5px 1.5px at 88% 52%, rgb(255 255 255 / 0.4), transparent 70%),
+    radial-gradient(1.3px 1.3px at 46% 12%, rgb(255 255 255 / 0.55), transparent 70%),
+    radial-gradient(1.2px 1.2px at 6% 60%, rgb(255 255 255 / 0.35), transparent 70%),
+    radial-gradient(1.4px 1.4px at 92% 78%, rgb(255 255 255 / 0.3), transparent 70%),
+    radial-gradient(1.2px 1.2px at 20% 86%, rgb(255 255 255 / 0.3), transparent 70%),
+    radial-gradient(ellipse 130% 70% at 50% 0%, rgb(139 124 246 / 0.34), transparent 70%),
+    var(--color-night-950);
+}
+
+.sky-dawn {
+  background:
+    radial-gradient(ellipse 130% 70% at 50% 0%, rgb(251 146 60 / 0.32), transparent 70%),
+    radial-gradient(ellipse 80% 45% at 85% 0%, rgb(244 63 94 / 0.2), transparent 70%),
+    var(--color-night-950);
+}
+
+.sky-day {
+  background:
+    radial-gradient(ellipse 130% 70% at 50% 0%, rgb(251 191 36 / 0.28), transparent 70%),
+    var(--color-night-950);
+}
+
+.sky-setup {
+  background:
+    radial-gradient(ellipse 130% 65% at 50% 0%, rgb(139 124 246 / 0.24), transparent 70%),
+    var(--color-night-950);
+}
+
+.sky-village {
+  background:
+    radial-gradient(ellipse 130% 70% at 50% 0%, rgb(16 185 129 / 0.32), transparent 70%),
+    var(--color-night-950);
+}
+
+.sky-wolves {
+  background:
+    radial-gradient(ellipse 130% 70% at 50% 0%, rgb(244 63 94 / 0.34), transparent 70%),
+    var(--color-night-950);
+}
+
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
