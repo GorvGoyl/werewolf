@@ -57,7 +57,7 @@ export function Header({ state, canUndo, onUndo, onOpenRoles, onOpenHistory, onO
             className="size-5"
           />
           {/* On narrow phones the arrow alone leaves room for the phase */}
-          <span className="max-[399px]:sr-only">Undo</span>
+          <span className="max-[400px]:sr-only">Undo</span>
         </HeaderButton>
         <div className="flex min-w-0 flex-1 justify-center">
           {/* The phase opens the story so far, night by night and day by day */}
