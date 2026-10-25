@@ -4,6 +4,7 @@ import type { GameState } from "../game/types"
 import { isNightStep } from "../game/reducer"
 import { cx } from "../lib/cx"
 import { NightProgress } from "./NightProgress"
+import { useInstallState } from "../lib/install"
 
 function phaseLabel(state: GameState): string {
   const phase = state.currentPhase
@@ -24,6 +25,7 @@ type Props = {
   onOpenRoleNames: () => void
   onNewGame: () => void
   onCopyState: () => void
+  onInstall: () => void
 }
 
 export function Header({
@@ -35,8 +37,10 @@ export function Header({
   onOpenRoleNames,
   onNewGame,
   onCopyState,
+  onInstall,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const { installed } = useInstallState()
   const phase = state.currentPhase
   const inGame = phase.type !== "setup" && phase.type !== "role_config"
   const night = isNightStep(phase) || phase.type === "night_results"
@@ -104,6 +108,14 @@ export function Header({
                   icon="👥"
                   onClick={() => choose(onOpenRoles)}>
                   Everyone&apos;s roles
+                </MenuItem>
+              )}
+              {!installed && (
+                <MenuItem
+                  icon="📲"
+                  hint="Home screen icon, works offline"
+                  onClick={() => choose(onInstall)}>
+                  Install app
                 </MenuItem>
               )}
               <div className="my-1.5 border-t border-white/5" />

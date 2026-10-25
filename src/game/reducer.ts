@@ -52,9 +52,11 @@ export function sameName(a: string, b: string): boolean {
 
 // Newest names first, no duplicates
 export function rememberNames(savedNames: string[], names: string[]): string[] {
-  const fresh = [...names].reverse()
-  const rest = savedNames.filter((s) => !names.some((n) => sameName(n, s)))
-  return [...fresh, ...rest].slice(0, MAX_SAVED_NAMES)
+  const result: string[] = []
+  for (const name of [...[...names].reverse(), ...savedNames]) {
+    if (!result.some((n) => sameName(n, name))) result.push(name)
+  }
+  return result.slice(0, MAX_SAVED_NAMES)
 }
 
 export function isNightStep(phase: GamePhase): phase is { type: NightStep } {

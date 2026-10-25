@@ -10,6 +10,7 @@ import { getPlayersInDanger, resolveDeaths } from "../src/game/deaths"
 import { getLineup, isConfigValid, isWolf, pluralize, rolePlural } from "../src/game/roles"
 import { getWolvesStep } from "../src/game/selectors"
 import { applyImport, readImportFromHash, sanitizeState } from "../src/game/storage"
+import { detectPlatform } from "../src/lib/install"
 import type { GameAction, GameConfig, GameState, Player } from "../src/game/types"
 import { DEFAULT_GAME_CONFIG } from "../src/game/types"
 
@@ -788,6 +789,22 @@ describe("Storage", () => {
     expect(state.timerMinutes).toBe(game.timerMinutes)
   })
 
+  it("an older address hands over its whole game on the first visit", () => {
+    const game = buildGameWithRoles()
+    const payload = readImportFromHash(`#import=${encodeURIComponent(JSON.stringify({ v: 2, state: game }))}`)!
+    expect(applyImport(createInitialState(), payload, true)).toEqual(game)
+  })
+
+  it("an older address only adds names when this one already has a game", () => {
+    const here = run(setupGame(["Zed", "Yan"]), { type: "SET_ROLE_NAMES", roleNames: { seer: "Oracle" } })
+    const there = buildGameWithRoles()
+    const state = applyImport(here, { v: 2, state: there } as never, false)
+    expect(state.players.map((p) => p.name)).toEqual(["Zed", "Yan"])
+    expect(state.roleNames).toEqual({ seer: "Oracle" })
+    for (const name of ["Ali", "Maud", "Zed"]) expect(state.savedNames).toContain(name)
+    expect(new Set(state.savedNames.map((n) => n.toLowerCase())).size).toBe(state.savedNames.length)
+  })
+
   it("ignores broken import hashes", () => {
     expect(readImportFromHash("#import=%7Bbroken")).toBeNull()
     expect(readImportFromHash("#rules")).toBeNull()
@@ -805,5 +822,24 @@ describe("Role names", () => {
     expect(pluralize("Loup")).toBe("Loups")
     expect(rolePlural("wolf", {})).toBe("Wolves")
     expect(rolePlural("wolf", { wolf: "Lycan" })).toBe("Lycans")
+  })
+})
+
+// ===========================
+// 14. INSTALL
+// ===========================
+describe("Install", () => {
+  it("knows how each phone browser installs the app", () => {
+    const firefoxAndroid = "Mozilla/5.0 (Android 15; Mobile; rv:145.0) Gecko/145.0 Firefox/145.0"
+    const chromeAndroid =
+      "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36"
+    const iphone =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
+    const mac = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
+    expect(detectPlatform(firefoxAndroid, 5)).toBe("firefox-android")
+    expect(detectPlatform(chromeAndroid, 5)).toBe("android")
+    expect(detectPlatform(iphone, 5)).toBe("ios")
+    expect(detectPlatform(mac, 5)).toBe("ios") // an iPad asking for the desktop site
+    expect(detectPlatform(mac, 0)).toBe("desktop")
   })
 })

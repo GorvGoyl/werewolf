@@ -136,24 +136,34 @@ export function saveHistory(history: GameState[]): void {
   }
 }
 
-// gourav.io/werewolf (the old home) hands over its saved names and settings as #import=<json>
+// Older addresses hand their saved data over in the URL as #import=<json>, since each address
+// has its own storage: gourav.io/werewolf sends names and settings, an older address of this
+// app sends its whole saved game as `state`
 export type ImportPayload = {
   names?: unknown
   roleNames?: unknown
   timerMinutes?: unknown
   gameConfig?: unknown
+  state?: unknown
 }
 
 export function applyImport(state: GameState, payload: ImportPayload, isFirstVisit: boolean): GameState {
-  const names = sanitizeNames(payload.names)
-  let next: GameState = { ...state, savedNames: rememberNames(state.savedNames, names) }
+  const fullState = sanitizeState(payload.state)
+  if (fullState && isFirstVisit) return fullState
 
-  if (next.currentPhase.type === "setup" && next.players.length === 0 && names.length > 0) {
-    next = gameReducer(next, { type: "ADD_PLAYERS", names })
+  let incomingNames = sanitizeNames(payload.names)
+  let incomingRoleNames = sanitizeRoleNames(payload.roleNames)
+  if (fullState) {
+    incomingNames = [...fullState.savedNames].reverse().concat(fullState.players.map((p) => p.name))
+    incomingRoleNames = fullState.roleNames
   }
-  const roleNames = sanitizeRoleNames(payload.roleNames)
-  if (Object.keys(next.roleNames).length === 0 && Object.keys(roleNames).length > 0) {
-    next = { ...next, roleNames }
+
+  let next: GameState = { ...state, savedNames: rememberNames(state.savedNames, incomingNames) }
+  if (next.currentPhase.type === "setup" && next.players.length === 0 && incomingNames.length > 0 && !fullState) {
+    next = gameReducer(next, { type: "ADD_PLAYERS", names: incomingNames })
+  }
+  if (Object.keys(next.roleNames).length === 0 && Object.keys(incomingRoleNames).length > 0) {
+    next = { ...next, roleNames: incomingRoleNames }
   }
   if (isFirstVisit) {
     if (typeof payload.timerMinutes === "number") {
@@ -175,6 +185,28 @@ export function readImportFromHash(hash: string): ImportPayload | null {
   } catch {
     return null
   }
+}
+
+export const HOME_URL = "https://werewolf.gourav.io/"
+// Addresses the app used to live at. They forward to HOME_URL, taking the saved game along once.
+const OLD_HOSTS = ["gorv-werewolf.vercel.app"]
+const FORWARDED_KEY = "werewolf.forwarded"
+
+// True when this page is on an old address and is leaving for the main one
+export function forwardToHome(): boolean {
+  if (!OLD_HOSTS.includes(window.location.hostname)) return false
+  let hash = ""
+  try {
+    const saved = loadState()
+    if (saved && !localStorage.getItem(FORWARDED_KEY)) {
+      hash = `#import=${encodeURIComponent(JSON.stringify({ v: 2, state: saved }))}`
+      localStorage.setItem(FORWARDED_KEY, "1")
+    }
+  } catch {
+    // Can't read storage: just go
+  }
+  window.location.replace(HOME_URL + hash)
+  return true
 }
 
 export type Boot = { state: GameState; history: GameState[]; openRules: boolean }

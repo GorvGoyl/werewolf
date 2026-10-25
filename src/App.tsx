@@ -8,6 +8,8 @@ import { Header } from "./components/Header"
 import { RolesSheet } from "./components/RolesSheet"
 import { RulesGuide } from "./components/RulesGuide"
 import { RoleNamesEditor } from "./components/RoleNamesEditor"
+import { InstallSheet } from "./components/Install"
+import { promptInstall } from "./lib/install"
 import { SetupScreen } from "./screens/SetupScreen"
 import { RoleConfigScreen } from "./screens/RoleConfigScreen"
 import { CourtesanScreen } from "./screens/CourtesanScreen"
@@ -21,7 +23,7 @@ import { GameOverScreen } from "./screens/GameOverScreen"
 import { useWakeLock } from "./lib/useWakeLock"
 import { cx } from "./lib/cx"
 
-type Overlay = "roles" | "rules" | "names"
+type Overlay = "roles" | "rules" | "names" | "install"
 
 // Settings changes aren't steps of the game, so undo skips them
 const NOT_UNDOABLE: Array<GameAction["type"]> = [
@@ -127,6 +129,12 @@ export function App({ boot }: Props) {
     dispatch({ type: "NEW_GAME" })
   }
 
+  // The browser's own install dialog when there is one (Chrome), otherwise how-to steps (Firefox, Safari)
+  async function install() {
+    const prompted = await promptInstall()
+    if (!prompted) openOverlay("install")
+  }
+
   async function copyState() {
     try {
       await navigator.clipboard.writeText(JSON.stringify(stateRef.current, null, 2))
@@ -149,11 +157,13 @@ export function App({ boot }: Props) {
         onOpenRoleNames={() => openOverlay("names")}
         onNewGame={startNewGame}
         onCopyState={copyState}
+        onInstall={install}
       />
       <CurrentScreen
         key={`${state.currentPhase.type}:${state.currentNight}:${state.currentDay}`}
         state={state}
         dispatch={dispatch}
+        onInstall={install}
       />
 
       {overlay === "roles" && (
@@ -167,6 +177,15 @@ export function App({ boot }: Props) {
         <RulesGuide
           roleNames={state.roleNames}
           onClose={closeOverlay}
+        />
+      )}
+      {overlay === "install" && (
+        <InstallSheet
+          onClose={closeOverlay}
+          onInstall={async () => {
+            await promptInstall()
+            closeOverlay()
+          }}
         />
       )}
       {overlay === "names" && (
@@ -190,14 +209,15 @@ export function App({ boot }: Props) {
   )
 }
 
-type ScreenProps = {
+type CurrentScreenProps = {
   state: GameState
   dispatch: (action: GameAction) => void
+  onInstall: () => void
 }
 
-function CurrentScreen({ state, dispatch }: ScreenProps) {
+function CurrentScreen({ state, dispatch, onInstall }: CurrentScreenProps) {
   const phase = state.currentPhase
-  if (phase.type === "setup") return <SetupScreen state={state} dispatch={dispatch} />
+  if (phase.type === "setup") return <SetupScreen state={state} dispatch={dispatch} onInstall={onInstall} />
   if (phase.type === "role_config") return <RoleConfigScreen state={state} dispatch={dispatch} />
   if (phase.type === "night_courtesan") return <CourtesanScreen state={state} dispatch={dispatch} />
   if (phase.type === "night_baby_wolf") return <BabyWolfScreen state={state} dispatch={dispatch} />

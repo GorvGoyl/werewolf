@@ -1,13 +1,16 @@
 {
+  "id": "/",
   "name": "Werewolf GM",
   "short_name": "Werewolf",
   "description": "A phone-first game master companion for Werewolf.",
+  "lang": "en",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#070816",
   "theme_color": "#070816",
+  "categories": ["games", "entertainment"],
   "icons": [
     { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" },
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },

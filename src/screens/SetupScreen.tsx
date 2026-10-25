@@ -4,6 +4,7 @@ import { MIN_PLAYERS } from "../game/types"
 import type { Player } from "../game/types"
 import { sameName, splitNames } from "../game/reducer"
 import { ActionBar, Avatar, Button, Screen, ScreenTitle, SectionLabel } from "../components/ui"
+import { InstallBanner } from "../components/Install"
 import { cx } from "../lib/cx"
 import type { ScreenProps } from "./props"
 
@@ -18,7 +19,9 @@ function nextLabel(count: number): string {
   return `Next: choose roles (${count})`
 }
 
-export function SetupScreen({ state, dispatch }: ScreenProps) {
+type Props = ScreenProps & { onInstall: () => void }
+
+export function SetupScreen({ state, dispatch, onInstall }: Props) {
   const [draft, setDraft] = useState("")
   const [managing, setManaging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -50,6 +53,7 @@ export function SetupScreen({ state, dispatch }: ScreenProps) {
   return (
     <>
       <Screen>
+        <InstallBanner onInstall={onInstall} />
         <ScreenTitle
           eyebrow="New game"
           emoji="🐺"
