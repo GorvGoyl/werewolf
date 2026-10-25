@@ -1,8 +1,9 @@
 import { useState } from "react"
-import { ROLE_EMOJI, roleName } from "../game/roles"
+import { roleName } from "../game/roles"
 import { aliveId, alivePlayers, findRole, playerName } from "../game/selectors"
 import { ActionBar, Button, Callout, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
+import { ROLE_ICON } from "../components/icons"
 import { asList } from "../lib/cx"
 import { DeadRoleStep, IdentifyStep, nightEyebrow, nightfall } from "./night"
 import type { ScreenProps } from "./props"
@@ -75,7 +76,7 @@ function CourtesanInvite({ state, dispatch }: ScreenProps) {
       <Screen>
         <ScreenTitle
           eyebrow={nightEyebrow(state)}
-          emoji={ROLE_EMOJI.courtesan}
+          icon={ROLE_ICON.courtesan}
           title={name}
           subtitle={`${courtesan?.name} picks a guest for the night.`}
         />
@@ -86,7 +87,7 @@ function CourtesanInvite({ state, dispatch }: ScreenProps) {
         {lastGuest && (
           <Callout
             tone="sun"
-            icon="🚫"
+            icon="ban"
             title={`Not ${playerName(state, lastGuest)} again`}>
             They were last night's guest, so she must pick someone else.
           </Callout>
@@ -105,10 +106,11 @@ function CourtesanInvite({ state, dispatch }: ScreenProps) {
       <ActionBar>
         <Button
           disabled={!selected}
+          icon={selected !== null && ROLE_ICON.courtesan}
           onClick={() => {
             if (selected) dispatch({ type: "SET_COURTESAN_GUEST", playerId: selected })
           }}>
-          {selected && `🌹 Invite ${playerName(state, selected)}`}
+          {selected && `Invite ${playerName(state, selected)}`}
           {!selected && "Tap the guest"}
         </Button>
       </ActionBar>

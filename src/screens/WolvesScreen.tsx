@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { ROLE_EMOJI, getRegularWolfCount, isWolf, roleName, rolePlural } from "../game/roles"
+import { getRegularWolfCount, isWolf, roleName, rolePlural } from "../game/roles"
 import {
   aliveId,
   alivePlayers,
@@ -11,6 +11,7 @@ import {
 } from "../game/selectors"
 import { ActionBar, Button, Callout, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
+import { ROLE_ICON } from "../components/icons"
 import { asList } from "../lib/cx"
 import { IdentifyStep, joinNames, nightEyebrow, nightfall } from "./night"
 import type { ScreenProps } from "./props"
@@ -108,7 +109,7 @@ function WolvesAttack({ state, dispatch }: ScreenProps) {
       <Screen>
         <ScreenTitle
           eyebrow={nightEyebrow(state)}
-          emoji={ROLE_EMOJI.wolf}
+          icon={ROLE_ICON.wolf}
           title={wolves}
           subtitle={`${joinNames(pack.map((p) => p.name))} pick a victim.`}
           tone="blood"
@@ -116,7 +117,7 @@ function WolvesAttack({ state, dispatch }: ScreenProps) {
         {joining && (
           <Callout
             tone="sun"
-            icon="🐺"
+            icon={ROLE_ICON.baby_wolf}
             title={`${joining.name} joins the pack tonight`}>
             The {babyName} was bitten last night. Tap {joining.name}&apos;s shoulder before you wake the{" "}
             {wolves.toLowerCase()}, so they open their eyes too.
@@ -142,7 +143,7 @@ function WolvesAttack({ state, dispatch }: ScreenProps) {
           {baby && babyUnbitten && (
             <Callout
               tone="sun"
-              icon="👶"
+              icon={ROLE_ICON.baby_wolf}
               title={`${baby.name} survives a bite`}>
               {baby.name} is the {babyName}: if picked, they join the pack next night instead of dying.
             </Callout>
@@ -161,10 +162,11 @@ function WolvesAttack({ state, dispatch }: ScreenProps) {
         <Button
           tone="blood"
           disabled={!selected}
+          icon={selected !== null && ROLE_ICON.wolf}
           onClick={() => {
             if (selected) dispatch({ type: "SET_WOLF_TARGET", playerId: selected })
           }}>
-          {selected && `🐺 Attack ${playerName(state, selected)}`}
+          {selected && `Attack ${playerName(state, selected)}`}
           {!selected && "Tap the victim"}
         </Button>
       </ActionBar>
@@ -179,7 +181,7 @@ function CourtesanGuestHint({ guestName, guestIsWolf, courtesanName, wolves }: G
     return (
       <Callout
         tone="blood"
-        icon="🌹"
+        icon={ROLE_ICON.courtesan}
         title={`The ${courtesanName} invited ${guestName}, a wolf`}>
         She dies tonight, whoever the {wolves.toLowerCase()} pick.
       </Callout>
@@ -188,7 +190,7 @@ function CourtesanGuestHint({ guestName, guestIsWolf, courtesanName, wolves }: G
   return (
     <Callout
       tone="moon"
-      icon="🌹"
+      icon={ROLE_ICON.courtesan}
       title={`The ${courtesanName} is with ${guestName}`}>
       If they pick {guestName}, nobody dies. If they pick the {courtesanName}, she and {guestName} both die.
     </Callout>

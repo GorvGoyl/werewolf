@@ -1,14 +1,16 @@
 import type { GameState, NightEvent, RoleNames, Winner } from "../game/types"
 import { isWolf, roleName, rolePlural } from "../game/roles"
 import { playerName, wasBabyWolfBitten } from "../game/selectors"
-import { ActionBar, Button, Screen, ScriptCard, SectionLabel } from "../components/ui"
+import { ActionBar, Button, IconTile, Screen, ScriptCard, SectionLabel } from "../components/ui"
 import type { Tone } from "../components/ui"
+import type { IconName } from "../components/icons"
+import { Icon } from "../components/icons"
 import { RoleList } from "../components/RoleList"
 import { cx } from "../lib/cx"
 import { joinNames } from "./night"
 import type { ScreenProps } from "./props"
 
-type Line = { icon: string; text: string; tone: Tone }
+type Line = { icon: IconName; text: string; tone: Tone }
 
 const LINE_TEXT: Record<Tone, string> = {
   moon: "text-moon-300",
@@ -23,18 +25,18 @@ function attackOutcome(state: GameState, night: NightEvent): Line {
   const target = playerName(state, night.wolfTarget)
   const attack = `${rolePlural("wolf", rn)} attacked ${target}`
   if (night.deaths.some((d) => d.playerId === night.wolfTarget)) {
-    return { icon: "🐺", text: `${attack}: died`, tone: "blood" }
+    return { icon: "wolf", text: `${attack}: died`, tone: "blood" }
   }
   if (wasBabyWolfBitten(state, night)) {
-    return { icon: "🐺", text: `${attack}: bitten, joined the pack`, tone: "sun" }
+    return { icon: "wolf", text: `${attack}: bitten, joined the pack`, tone: "sun" }
   }
   if (night.courtesanGuest === night.wolfTarget) {
-    return { icon: "🐺", text: `${attack}: safe at the ${roleName("courtesan", rn)}'s`, tone: "leaf" }
+    return { icon: "wolf", text: `${attack}: safe at the ${roleName("courtesan", rn)}'s`, tone: "leaf" }
   }
   if (night.wizardSaved === night.wolfTarget) {
-    return { icon: "🐺", text: `${attack}: saved by the ${roleName("wizard", rn)}`, tone: "leaf" }
+    return { icon: "wolf", text: `${attack}: saved by the ${roleName("wizard", rn)}`, tone: "leaf" }
   }
-  return { icon: "🐺", text: `${attack}: survived`, tone: "leaf" }
+  return { icon: "wolf", text: `${attack}: survived`, tone: "leaf" }
 }
 
 function nightLines(state: GameState, night: NightEvent): Line[] {
@@ -42,7 +44,7 @@ function nightLines(state: GameState, night: NightEvent): Line[] {
   const lines: Line[] = []
   if (night.courtesanGuest) {
     lines.push({
-      icon: "🌹",
+      icon: "rose",
       text: `${roleName("courtesan", rn)} invited ${playerName(state, night.courtesanGuest)}`,
       tone: "mist",
     })
@@ -50,14 +52,14 @@ function nightLines(state: GameState, night: NightEvent): Line[] {
   if (night.wolfTarget) lines.push(attackOutcome(state, night))
   if (night.wizardSaved && night.wizardSaved !== night.wolfTarget) {
     lines.push({
-      icon: "💚",
+      icon: "heal",
       text: `${roleName("wizard", rn)} saved ${playerName(state, night.wizardSaved)}`,
       tone: "leaf",
     })
   }
   if (night.wizardKilled) {
     lines.push({
-      icon: "🧪",
+      icon: "poison",
       text: `${roleName("wizard", rn)} poisoned ${playerName(state, night.wizardKilled)}`,
       tone: "blood",
     })
@@ -67,15 +69,15 @@ function nightLines(state: GameState, night: NightEvent): Line[] {
     let verdict = "not a wolf"
     if (wolf) verdict = "wolf"
     lines.push({
-      icon: "👁️",
+      icon: "eye",
       text: `${roleName("seer", rn)} checked ${playerName(state, night.seerChecked)}: ${verdict}`,
       tone: "moon",
     })
   }
-  if (night.deaths.length === 0) lines.push({ icon: "🌅", text: "Nobody died", tone: "leaf" })
+  if (night.deaths.length === 0) lines.push({ icon: "sunrise", text: "Nobody died", tone: "leaf" })
   if (night.deaths.length > 0) {
     const names = night.deaths.map((d) => playerName(state, d.playerId))
-    lines.push({ icon: "💀", text: `Died: ${joinNames(names)}`, tone: "blood" })
+    lines.push({ icon: "skull", text: `Died: ${joinNames(names)}`, tone: "blood" })
   }
   return lines
 }
@@ -85,13 +87,13 @@ function dayLines(state: GameState, day: number): Line[] {
   for (const event of state.dayEvents) {
     if (event.day !== day) continue
     if (!event.eliminated) {
-      lines.push({ icon: "🗳️", text: "Nobody was voted out", tone: "mist" })
+      lines.push({ icon: "vote", text: "Nobody was voted out", tone: "mist" })
       continue
     }
     const text = `${playerName(state, event.eliminated)} voted out: ${roleName(event.revealedRole, state.roleNames)}`
     let tone: Tone = "leaf"
     if (isWolf(event.revealedRole)) tone = "blood"
-    lines.push({ icon: "🗳️", text, tone })
+    lines.push({ icon: "vote", text, tone })
   }
   return lines
 }
@@ -121,23 +123,33 @@ export function GameOverScreen({ state, dispatch, winner }: Props) {
       <Screen>
         <div
           className={cx(
-            "mb-4 animate-pop rounded-3xl border px-5 py-7 text-center",
+            "mb-5 flex animate-pop flex-col items-center rounded-3xl border px-5 py-8 text-center",
             village && "border-leaf-500/40 bg-leaf-500/15",
             !village && "border-blood-500/40 bg-blood-500/15",
           )}>
-          <div className="text-5xl">
-            {village && "🎉"}
-            {!village && "🐺"}
-          </div>
+          {village && (
+            <IconTile
+              icon="trophy"
+              tone="leaf"
+              size="xl"
+            />
+          )}
+          {!village && (
+            <IconTile
+              icon="wolf"
+              tone="blood"
+              size="xl"
+            />
+          )}
           <h1
             className={cx(
-              "mt-2 text-3xl font-extrabold tracking-tight",
+              "mt-4 text-[32px] font-extrabold leading-tight tracking-tight",
               village && "text-leaf-400",
               !village && "text-blood-400",
             )}>
             {text.title}
           </h1>
-          <div className="mt-1 text-[14px] text-mist-300">
+          <div className="mt-1 text-[15px] text-mist-300">
             After {nights} night{nights !== 1 && "s"}
           </div>
         </div>
@@ -155,14 +167,14 @@ export function GameOverScreen({ state, dispatch, winner }: Props) {
             <li key={night.night}>
               <TimelineCard
                 label={`Night ${night.night}`}
-                icon="🌙"
+                icon="moon"
                 lines={nightLines(state, night)}
               />
               {dayLines(state, night.night).length > 0 && (
                 <div className="mt-2">
                   <TimelineCard
                     label={`Day ${night.night}`}
-                    icon="☀️"
+                    icon="sun"
                     lines={dayLines(state, night.night)}
                   />
                 </div>
@@ -174,28 +186,36 @@ export function GameOverScreen({ state, dispatch, winner }: Props) {
       <ActionBar>
         <Button
           tone={tone}
+          icon="replay"
           onClick={() => dispatch({ type: "NEW_GAME" })}>
-          🔁 Play again
+          Play again
         </Button>
       </ActionBar>
     </>
   )
 }
 
-type TimelineCardProps = { label: string; icon: string; lines: Line[] }
+type TimelineCardProps = { label: string; icon: IconName; lines: Line[] }
 
 function TimelineCard({ label, icon, lines }: TimelineCardProps) {
   return (
-    <div className="rounded-2xl border border-white/5 bg-night-800/70 px-3.5 py-3">
-      <div className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-mist-400">
-        {icon} {label}
+    <div className="rounded-2xl border border-white/5 bg-night-800/70 px-4 py-3.5">
+      <div className="mb-2 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.16em] text-mist-400">
+        <Icon
+          name={icon}
+          className="size-4"
+        />
+        {label}
       </div>
-      <ul className="space-y-1">
+      <ul className="space-y-1.5">
         {lines.map((line) => (
           <li
             key={`${line.icon}${line.text}`}
-            className={cx("flex gap-2 text-[14px] leading-snug", LINE_TEXT[line.tone])}>
-            <span aria-hidden>{line.icon}</span>
+            className={cx("flex gap-2.5 text-[15px] leading-snug", LINE_TEXT[line.tone])}>
+            <Icon
+              name={line.icon}
+              className="mt-px size-[18px]"
+            />
             <span>{line.text}</span>
           </li>
         ))}

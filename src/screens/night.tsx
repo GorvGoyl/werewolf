@@ -1,8 +1,9 @@
 import type { ReactNode } from "react"
 import { useState } from "react"
 import type { GameState, Role } from "../game/types"
-import { ROLE_EMOJI, roleName } from "../game/roles"
+import { roleName } from "../game/roles"
 import { getNightSteps } from "../game/reducer"
+import { ROLE_ICON } from "../components/icons"
 import { ActionBar, Button, Callout, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
 import type { Tone } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
@@ -83,7 +84,7 @@ export function IdentifyStep({
       <Screen>
         <ScreenTitle
           eyebrow={`${nightEyebrow(state)} · Who is it?`}
-          emoji={ROLE_EMOJI[role]}
+          icon={ROLE_ICON[role]}
           title={title}
           tone={tone}
         />
@@ -109,6 +110,7 @@ export function IdentifyStep({
         <Button
           tone={tone}
           disabled={!ready}
+          icon={ready && "check"}
           onClick={() => onConfirm(selected)}>
           {ready && confirmLabel(names)}
           {!ready && count > 1 && `Pick ${count - selected.length} more`}
@@ -132,7 +134,7 @@ export function DeadRoleStep({ state, dispatch, role, opening }: DeadRoleStepPro
       <Screen>
         <ScreenTitle
           eyebrow={nightEyebrow(state)}
-          emoji={ROLE_EMOJI[role]}
+          icon={ROLE_ICON[role]}
           title={name}
           subtitle={`The ${name} is dead.`}
           tone="mist"
@@ -143,7 +145,7 @@ export function DeadRoleStep({ state, dispatch, role, opening }: DeadRoleStepPro
           tone="mist"
         />
         <Callout
-          icon="🤫"
+          icon="mask"
           title="Pretend">
           Call the {name} anyway and wait a few seconds, so nobody can tell they're gone.
         </Callout>

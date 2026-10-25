@@ -4,28 +4,6 @@ export type Team = "wolves" | "village" | "wildcard"
 
 export const ROLE_ORDER: Role[] = ["queen_wolf", "wolf", "baby_wolf", "courtesan", "wizard", "seer", "villager"]
 
-// Full icon, used in titles and lists
-export const ROLE_EMOJI: Record<Role, string> = {
-  courtesan: "🌹",
-  queen_wolf: "👑🐺",
-  wolf: "🐺",
-  baby_wolf: "🐺👶",
-  wizard: "🧙",
-  seer: "👁️",
-  villager: "😇",
-}
-
-// Single-emoji icon, used as a badge on player buttons
-export const ROLE_BADGE: Record<Role, string> = {
-  courtesan: "🌹",
-  queen_wolf: "👑",
-  wolf: "🐺",
-  baby_wolf: "👶",
-  wizard: "🧙",
-  seer: "👁️",
-  villager: "😇",
-}
-
 export const DEFAULT_ROLE_NAMES: Record<Role, string> = {
   courtesan: "Courtesan",
   queen_wolf: "Queen Wolf",

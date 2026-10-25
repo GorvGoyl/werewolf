@@ -9,7 +9,20 @@ import {
   protectedGuestOf,
 } from "../game/selectors"
 import { causeText } from "../game/text"
-import { ActionBar, Avatar, Button, Callout, Screen, ScreenTitle, ScriptCard, SectionLabel, Stat } from "../components/ui"
+import {
+  ActionBar,
+  Avatar,
+  Button,
+  Callout,
+  IconTile,
+  Screen,
+  ScreenTitle,
+  ScriptCard,
+  SectionLabel,
+  Stat,
+  playerTone,
+} from "../components/ui"
+import { ROLE_ICON, playerIcon } from "../components/icons"
 import { joinNames } from "./night"
 import type { ScreenProps } from "./props"
 
@@ -42,7 +55,7 @@ export function NightResultsScreen({ state, dispatch }: ScreenProps) {
       <Screen>
         <ScreenTitle
           eyebrow={`Night ${state.currentNight} is over`}
-          emoji="🌅"
+          icon="sunrise"
           title={deathsTitle(deaths.length)}
           tone="sun"
         />
@@ -63,11 +76,17 @@ export function NightResultsScreen({ state, dispatch }: ScreenProps) {
           </div>
         )}
 
-        {hasSecrets && <SectionLabel>Only you know</SectionLabel>}
+        {hasSecrets && (
+          <SectionLabel
+            icon="eyeOff"
+            tone="mist">
+            Only you know
+          </SectionLabel>
+        )}
         {protectedGuest && (
           <Callout
             tone="moon"
-            icon="🌹"
+            icon={ROLE_ICON.courtesan}
             title={`${protectedGuest.name} was safe at the ${roleName("courtesan", rn)}'s`}>
             The wolves attacked them, but nobody died.
           </Callout>
@@ -75,7 +94,7 @@ export function NightResultsScreen({ state, dispatch }: ScreenProps) {
         {saved && (
           <Callout
             tone="leaf"
-            icon="💚"
+            icon="heal"
             title={`The ${roleName("wizard", rn)} saved ${saved.name}`}>
             The save potion is now used up.
           </Callout>
@@ -83,35 +102,39 @@ export function NightResultsScreen({ state, dispatch }: ScreenProps) {
         {bitten && (
           <Callout
             tone="sun"
-            icon="🐺"
+            icon={ROLE_ICON.baby_wolf}
             title={`${bitten.name} was bitten`}>
             The {roleName("baby_wolf", rn)} survives and joins the pack next night.
           </Callout>
         )}
 
-        <div className="mt-5 flex rounded-2xl border border-white/5 bg-night-800/70 py-3">
+        <div className="mt-5 flex rounded-2xl border border-white/5 bg-night-800/70 py-3.5">
           <Stat
             value={alivePlayers(state).length}
             label="Alive"
             tone="leaf"
+            icon="heart"
           />
           <Stat
             value={state.players.length - alivePlayers(state).length}
             label="Dead"
             tone="blood"
+            icon="skull"
           />
           <Stat
             value={aliveWolves(state).length}
             label="Wolves left"
             tone="sun"
+            icon={ROLE_ICON.wolf}
           />
         </div>
       </Screen>
       <ActionBar>
         <Button
           tone="sun"
+          icon="sun"
           onClick={() => dispatch({ type: "START_DAY" })}>
-          ☀️ Start Day {state.currentNight}
+          Start Day {state.currentNight}
         </Button>
       </ActionBar>
     </>
@@ -124,15 +147,19 @@ function DeathCard({ state, death }: DeathCardProps) {
   const player = getPlayer(state, death.playerId)
   if (!player) return null
   return (
-    <div className="flex animate-pop items-center gap-3 rounded-2xl border border-blood-500/25 bg-blood-500/10 px-3.5 py-3">
+    <div className="flex min-h-[72px] animate-pop items-center gap-3 rounded-2xl border border-blood-500/25 bg-blood-500/10 px-3.5 py-3">
       <Avatar name={player.name} />
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[16px] font-semibold text-mist-100">{player.name}</div>
-        <div className="text-[13px] text-blood-300">{causeText(death.cause, state.roleNames)}</div>
+        <div className="truncate text-[17px] font-semibold text-mist-100">{player.name}</div>
+        <div className="text-[14px] leading-snug text-blood-300">{causeText(death.cause, state.roleNames)}</div>
       </div>
-      <div className="text-right">
-        <div className="text-xl">💀</div>
-        <div className="text-[11px] text-mist-400">{roleName(player.role, state.roleNames)}</div>
+      <div className="flex max-w-24 shrink-0 flex-col items-center gap-1 text-center">
+        <IconTile
+          icon={playerIcon(player, state.babyWolfPlayerId)}
+          tone={playerTone(player)}
+          size="sm"
+        />
+        <div className="text-[12px] leading-tight text-mist-400">{roleName(player.role, state.roleNames)}</div>
       </div>
     </div>
   )

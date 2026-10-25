@@ -2,7 +2,9 @@ import type { ReactNode } from "react"
 import { useState } from "react"
 import type { Platform } from "../lib/install"
 import { dismissInstallHint, isInstallHintDismissed, useInstallState } from "../lib/install"
-import { Button, Sheet } from "./ui"
+import type { IconName } from "./icons"
+import { Icon } from "./icons"
+import { Button, IconTile, Sheet } from "./ui"
 
 type Step = { text: ReactNode }
 
@@ -48,6 +50,12 @@ function Key({ children }: { children: ReactNode }) {
   )
 }
 
+const BENEFITS: Array<{ icon: IconName; text: string }> = [
+  { icon: "phone", text: "Opens full screen, like any app" },
+  { icon: "wifiOff", text: "Works without internet once installed" },
+  { icon: "users", text: "Keeps the same saved names and game" },
+]
+
 type SheetProps = { onClose: () => void; onInstall: () => void }
 
 // How to install when the browser has no install dialog of its own (Firefox, Safari)
@@ -58,31 +66,44 @@ export function InstallSheet({ onClose, onInstall }: SheetProps) {
       title="Install the app"
       subtitle="Werewolf GM on your home screen"
       onClose={onClose}>
-      <ul className="mb-5 space-y-2 text-[15px] text-mist-200">
-        <li className="flex gap-2.5">
-          <span aria-hidden>📲</span>Opens full screen, like any app
-        </li>
-        <li className="flex gap-2.5">
-          <span aria-hidden>📶</span>Works without internet once installed
-        </li>
-        <li className="flex gap-2.5">
-          <span aria-hidden>💾</span>Keeps the same saved names and game
-        </li>
+      <ul className="mb-5 space-y-3 text-[16px] text-mist-200">
+        {BENEFITS.map((benefit) => (
+          <li
+            key={benefit.text}
+            className="flex items-center gap-3">
+            <IconTile
+              icon={benefit.icon}
+              tone="moon"
+              size="sm"
+            />
+            {benefit.text}
+          </li>
+        ))}
       </ul>
 
       {installed && (
-        <div className="rounded-2xl border border-leaf-500/30 bg-leaf-500/10 px-4 py-3 text-[15px] font-semibold text-leaf-400">
-          ✓ Installed. Open it from your home screen.
+        <div className="flex items-center gap-2.5 rounded-2xl border border-leaf-500/30 bg-leaf-500/10 px-4 py-3.5 text-[16px] font-semibold text-leaf-400">
+          <Icon
+            name="checkCircle"
+            className="size-5"
+          />
+          Installed. Open it from your home screen.
         </div>
       )}
-      {!installed && canPrompt && <Button onClick={onInstall}>📲 Install now</Button>}
+      {!installed && canPrompt && (
+        <Button
+          icon="install"
+          onClick={onInstall}>
+          Install now
+        </Button>
+      )}
       {!installed && !canPrompt && (
         <ol className="space-y-3">
           {steps(platform).map((step, i) => (
             <li
               key={i}
-              className="flex gap-3 rounded-2xl border border-white/5 bg-night-800/80 px-4 py-3 text-[15px] leading-relaxed text-mist-200">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-moon-500/25 text-[14px] font-bold text-moon-300">
+              className="flex gap-3 rounded-2xl border border-white/5 bg-night-800/80 px-4 py-3 text-[16px] leading-relaxed text-mist-200">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-moon-500/25 text-[14px] font-bold text-moon-300">
                 {i + 1}
               </span>
               <span>{step.text}</span>
@@ -110,28 +131,31 @@ export function InstallBanner({ onInstall }: BannerProps) {
   }
 
   return (
-    <div className="mb-4 flex animate-pop items-center gap-3 rounded-2xl border border-moon-500/30 bg-moon-500/10 py-2.5 pl-3.5 pr-1.5">
-      <span
-        className="text-2xl"
-        aria-hidden>
-        📲
-      </span>
+    <div className="mb-5 flex animate-pop items-center gap-3 rounded-2xl border border-moon-500/30 bg-moon-500/10 py-2.5 pl-3 pr-1">
+      <IconTile
+        icon="install"
+        tone="moon"
+        size="sm"
+      />
       <div className="min-w-0 flex-1">
         <div className="text-[15px] font-semibold text-mist-100">Install the app</div>
-        <div className="text-[12.5px] leading-snug text-mist-300">Home screen icon, works offline</div>
+        <div className="text-[13px] leading-snug text-mist-300">Home screen icon, works offline</div>
       </div>
       <button
         type="button"
         onClick={onInstall}
-        className="h-10 shrink-0 rounded-xl bg-moon-500 px-4 text-[14px] font-bold text-white active:bg-moon-600">
+        className="h-11 shrink-0 rounded-xl bg-moon-500 px-4 text-[15px] font-bold text-white active:bg-moon-600">
         Install
       </button>
       <button
         type="button"
         onClick={dismiss}
         aria-label="Hide install suggestion"
-        className="flex h-10 w-9 shrink-0 items-center justify-center rounded-xl text-xl text-mist-400 active:bg-white/5">
-        ×
+        className="flex size-11 shrink-0 items-center justify-center rounded-xl text-mist-400 active:bg-white/5">
+        <Icon
+          name="x"
+          className="size-5"
+        />
       </button>
     </div>
   )

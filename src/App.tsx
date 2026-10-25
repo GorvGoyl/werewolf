@@ -5,11 +5,12 @@ import { eliminatedToday, isGameRunning } from "./game/selectors"
 import type { Boot } from "./game/storage"
 import { MAX_HISTORY, saveHistory, saveState } from "./game/storage"
 import { Header } from "./components/Header"
+import { Menu, NewGameSheet } from "./components/Menu"
 import { RolesSheet } from "./components/RolesSheet"
 import { RulesGuide } from "./components/RulesGuide"
 import { RoleNamesEditor } from "./components/RoleNamesEditor"
 import { InstallSheet } from "./components/Install"
-import { promptInstall } from "./lib/install"
+import { promptInstall, useInstallState } from "./lib/install"
 import { SetupScreen } from "./screens/SetupScreen"
 import { RoleConfigScreen } from "./screens/RoleConfigScreen"
 import { CourtesanScreen } from "./screens/CourtesanScreen"
@@ -23,7 +24,7 @@ import { GameOverScreen } from "./screens/GameOverScreen"
 import { useWakeLock } from "./lib/useWakeLock"
 import { cx } from "./lib/cx"
 
-type Overlay = "roles" | "rules" | "names" | "install"
+type Overlay = "menu" | "new_game" | "roles" | "rules" | "names" | "install"
 
 // Settings changes aren't steps of the game, so undo skips them
 const NOT_UNDOABLE: Array<GameAction["type"]> = [
@@ -58,6 +59,7 @@ export function App({ boot }: Props) {
   const [historyLength, setHistoryLength] = useState(boot.history.length)
   const [overlay, setOverlay] = useState<Overlay | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const { installed, canPrompt } = useInstallState()
 
   useWakeLock(isGameRunning(state))
 
@@ -121,11 +123,13 @@ export function App({ boot }: Props) {
     return () => window.removeEventListener("popstate", onPopState)
   }, [boot.openRules])
 
+  // A game in progress is only thrown away after asking
   function startNewGame() {
-    const running = isGameRunning(stateRef.current)
-    if (running && !window.confirm("End this game and start a new one with the same players? You can undo this.")) {
+    if (isGameRunning(stateRef.current)) {
+      openOverlay("new_game")
       return
     }
+    closeOverlay()
     dispatch({ type: "NEW_GAME" })
   }
 
@@ -133,6 +137,16 @@ export function App({ boot }: Props) {
   async function install() {
     const prompted = await promptInstall()
     if (!prompted) openOverlay("install")
+  }
+
+  // From the menu the steps replace it, while the browser's dialog opens over the game
+  function installFromMenu() {
+    if (!canPrompt) {
+      openOverlay("install")
+      return
+    }
+    closeOverlay()
+    void promptInstall()
   }
 
   async function copyState() {
@@ -153,11 +167,7 @@ export function App({ boot }: Props) {
         canUndo={historyLength > 0}
         onUndo={undo}
         onOpenRoles={() => openOverlay("roles")}
-        onOpenRules={() => openOverlay("rules")}
-        onOpenRoleNames={() => openOverlay("names")}
-        onNewGame={startNewGame}
-        onCopyState={copyState}
-        onInstall={install}
+        onOpenMenu={() => openOverlay("menu")}
       />
       <CurrentScreen
         key={`${state.currentPhase.type}:${state.currentNight}:${state.currentDay}`}
@@ -166,6 +176,31 @@ export function App({ boot }: Props) {
         onInstall={install}
       />
 
+      {overlay === "menu" && (
+        <Menu
+          inGame={state.currentPhase.type !== "setup" && state.currentPhase.type !== "role_config"}
+          installed={installed}
+          onClose={closeOverlay}
+          onOpenRules={() => openOverlay("rules")}
+          onOpenRoleNames={() => openOverlay("names")}
+          onOpenRoles={() => openOverlay("roles")}
+          onInstall={installFromMenu}
+          onNewGame={startNewGame}
+          onCopyState={() => {
+            closeOverlay()
+            void copyState()
+          }}
+        />
+      )}
+      {overlay === "new_game" && (
+        <NewGameSheet
+          onClose={closeOverlay}
+          onConfirm={() => {
+            closeOverlay()
+            dispatch({ type: "NEW_GAME" })
+          }}
+        />
+      )}
       {overlay === "roles" && (
         <RolesSheet
           state={state}

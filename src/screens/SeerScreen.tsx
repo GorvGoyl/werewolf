@@ -1,8 +1,9 @@
 import { useState } from "react"
-import { ROLE_EMOJI, roleName } from "../game/roles"
+import { roleName } from "../game/roles"
 import { alivePlayers, findRole, getPlayer, playerName } from "../game/selectors"
-import { ActionBar, Avatar, Button, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
+import { ActionBar, Avatar, Button, IconTile, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
+import { ROLE_ICON } from "../components/icons"
 import { asList, cx } from "../lib/cx"
 import { DeadRoleStep, IdentifyStep, isLastNightStep, nightEyebrow } from "./night"
 import type { ScreenProps } from "./props"
@@ -70,7 +71,7 @@ function SeerPick({ state, dispatch }: ScreenProps) {
       <Screen>
         <ScreenTitle
           eyebrow={nightEyebrow(state)}
-          emoji={ROLE_EMOJI.seer}
+          icon={ROLE_ICON.seer}
           title={name}
           subtitle={`${seer?.name} checks one player.`}
         />
@@ -87,10 +88,11 @@ function SeerPick({ state, dispatch }: ScreenProps) {
       <ActionBar>
         <Button
           disabled={!selected}
+          icon={selected !== null && ROLE_ICON.seer}
           onClick={() => {
             if (selected) dispatch({ type: "SET_SEER_CHECK", playerId: selected })
           }}>
-          {selected && `👁️ Reveal ${playerName(state, selected)}`}
+          {selected && `Reveal ${playerName(state, selected)}`}
           {!selected && "Tap a player"}
         </Button>
       </ActionBar>
@@ -109,26 +111,37 @@ function SeerResult({ state, dispatch }: ScreenProps) {
       <Screen>
         <ScreenTitle
           eyebrow={nightEyebrow(state)}
-          emoji={ROLE_EMOJI.seer}
+          icon={ROLE_ICON.seer}
           title={name}
           subtitle={`Show the ${name} the answer.`}
         />
         <div
           className={cx(
-            "mb-4 flex animate-pop flex-col items-center rounded-3xl border px-4 py-7 text-center",
+            "mb-5 flex animate-pop flex-col items-center rounded-3xl border px-4 py-7 text-center",
             isWolf && "border-blood-500/40 bg-blood-500/15",
             !isWolf && "border-leaf-500/40 bg-leaf-500/15",
           )}>
-          <Avatar
-            name={checked?.name ?? "?"}
-            size="lg"
-          />
-          <div className="mt-2 text-lg font-semibold text-mist-100">{checked?.name}</div>
-          <div className="mt-3 text-5xl">
-            {isWolf && "🐺"}
-            {!isWolf && "😇"}
+          <div className="flex items-center gap-3">
+            <Avatar name={checked?.name ?? "?"} />
+            <div className="text-[20px] font-semibold text-mist-100">{checked?.name}</div>
           </div>
-          <div className={cx("mt-2 text-2xl font-bold", isWolf && "text-blood-400", !isWolf && "text-leaf-400")}>
+          <div className="mt-5">
+            {isWolf && (
+              <IconTile
+                icon={ROLE_ICON.wolf}
+                tone="blood"
+                size="xl"
+              />
+            )}
+            {!isWolf && (
+              <IconTile
+                icon="shield"
+                tone="leaf"
+                size="xl"
+              />
+            )}
+          </div>
+          <div className={cx("mt-3 text-[30px] font-bold", isWolf && "text-blood-400", !isWolf && "text-leaf-400")}>
             {isWolf && "Wolf"}
             {!isWolf && "Not a wolf"}
           </div>
@@ -139,8 +152,10 @@ function SeerResult({ state, dispatch }: ScreenProps) {
         />
       </Screen>
       <ActionBar>
-        <Button onClick={() => dispatch({ type: "SKIP_TO_NEXT_PHASE" })}>
-          {last && "🌅 Continue to dawn"}
+        <Button
+          icon={last && "sunrise"}
+          onClick={() => dispatch({ type: "SKIP_TO_NEXT_PHASE" })}>
+          {last && "Continue to dawn"}
           {!last && "Continue"}
         </Button>
       </ActionBar>

@@ -1,8 +1,10 @@
-import type { Player, Role } from "../game/types"
-import { ROLE_BADGE } from "../game/roles"
+import type { Player } from "../game/types"
 import { cx } from "../lib/cx"
+import { haptic } from "../lib/haptics"
+import type { IconName } from "./icons"
+import { Icon, playerIcon } from "./icons"
 import type { Tone } from "./ui"
-import { Avatar } from "./ui"
+import { Avatar, playerTone, toneText } from "./ui"
 
 const SELECTED: Record<Tone, string> = {
   moon: "border-moon-400 bg-moon-500/20 ring-2 ring-moon-400/40",
@@ -31,12 +33,12 @@ type Props = {
   babyWolfPlayerId?: string | null
 }
 
-function badgeFor(player: Player, babyWolfPlayerId: string | null | undefined, showRoles: boolean): string | null {
+type Badge = { icon: IconName; tone: Tone }
+
+function badgeFor(player: Player, babyWolfPlayerId: string | null | undefined, showRoles: boolean): Badge | null {
   if (!showRoles) return null
-  const role: Role | null = player.role
-  if (!role || role === "villager") return null
-  if (player.id === babyWolfPlayerId && role === "wolf") return `${ROLE_BADGE.baby_wolf}${ROLE_BADGE.wolf}`
-  return ROLE_BADGE[role]
+  if (!player.role || player.role === "villager") return null
+  return { icon: playerIcon(player, babyWolfPlayerId ?? null), tone: playerTone(player) }
 }
 
 function tileClasses(selected: boolean, disabled: boolean, tone: Tone): string {
@@ -79,7 +81,7 @@ type TileProps = {
   selected: boolean
   disabled: boolean
   note?: string
-  badge: string | null
+  badge: Badge | null
   tone: Tone
   onSelect: (id: string) => void
 }
@@ -91,9 +93,12 @@ function PlayerTile({ player, selected, disabled, note, badge, tone, onSelect }:
       disabled={disabled}
       aria-pressed={selected}
       data-player={player.name}
-      onClick={() => onSelect(player.id)}
+      onClick={() => {
+        haptic()
+        onSelect(player.id)
+      }}
       className={cx(
-        "relative flex min-h-[60px] items-center gap-2.5 rounded-2xl border px-2.5 py-2 text-left transition-[transform,background-color] duration-100 active:scale-[0.97] disabled:active:scale-100",
+        "relative flex min-h-16 items-center gap-2.5 rounded-2xl border px-2.5 py-2 text-left transition-[transform,background-color] duration-100 active:scale-[0.97] disabled:active:scale-100",
         tileClasses(selected, disabled, tone),
       )}>
       <span className={cx(disabled && "opacity-45")}>
@@ -102,42 +107,38 @@ function PlayerTile({ player, selected, disabled, note, badge, tone, onSelect }:
       <span className="min-w-0 flex-1">
         <span
           className={cx(
-            "block truncate text-[15px] font-semibold leading-tight",
+            "block truncate text-[16px] font-semibold leading-tight",
             !player.isAlive && "line-through decoration-2",
           )}>
           {player.name}
         </span>
-        {note && <span className="mt-0.5 block truncate text-[11px] leading-tight text-mist-400">{note}</span>}
+        {note && <span className="mt-0.5 block truncate text-[12px] leading-tight text-mist-400">{note}</span>}
       </span>
       {!player.isAlive && (
         <span
-          aria-label="dead"
-          className="text-base">
-          💀
+          role="img"
+          aria-label="dead">
+          <Icon
+            name="skull"
+            className="size-5"
+          />
         </span>
       )}
       {badge && player.isAlive && !selected && (
-        <span
-          aria-hidden
-          className={cx("text-base leading-none", disabled && "opacity-60")}>
-          {badge}
-        </span>
+        <Icon
+          name={badge.icon}
+          className={cx("size-5", toneText(badge.tone), disabled && "opacity-60")}
+        />
       )}
       {selected && (
         <span
           aria-hidden
-          className={cx("flex h-6 w-6 shrink-0 items-center justify-center rounded-full", CHECK[tone])}>
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            strokeLinejoin="round">
-            <path d="M5 12.5 10 17 19 7" />
-          </svg>
+          className={cx("flex size-7 shrink-0 items-center justify-center rounded-full", CHECK[tone])}>
+          <Icon
+            name="check"
+            className="size-4"
+            strokeWidth={3.5}
+          />
         </span>
       )}
     </button>

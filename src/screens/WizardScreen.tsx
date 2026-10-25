@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { Death, GameState } from "../game/types"
-import { ROLE_EMOJI, roleName } from "../game/roles"
+import { roleName } from "../game/roles"
 import { getPlayersInDanger } from "../game/deaths"
 import { alivePlayers, findRole, playerName } from "../game/selectors"
 import { causeText } from "../game/text"
@@ -16,7 +16,9 @@ import {
   SectionLabel,
 } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
+import { Icon, ROLE_ICON } from "../components/icons"
 import { asList, cx } from "../lib/cx"
+import { haptic } from "../lib/haptics"
 import { DeadRoleStep, IdentifyStep, nightEyebrow } from "./night"
 import type { ScreenProps } from "./props"
 
@@ -87,6 +89,12 @@ function WizardPotions({ state, dispatch }: ScreenProps) {
   const [saveId, setSaveId] = useState<string | null>(null)
   const [killing, setKilling] = useState(false)
   const [killId, setKillId] = useState<string | null>(null)
+  const killGridRef = useRef<HTMLDivElement>(null)
+
+  // The players to poison open below the fold, so bring them into view
+  useEffect(() => {
+    if (killing) killGridRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+  }, [killing])
 
   const rn = state.roleNames
   const name = roleName("wizard", rn)
@@ -112,7 +120,7 @@ function WizardPotions({ state, dispatch }: ScreenProps) {
       <Screen>
         <ScreenTitle
           eyebrow={nightEyebrow(state)}
-          emoji={ROLE_EMOJI.wizard}
+          icon={ROLE_ICON.wizard}
           title={name}
           subtitle={`${wizard?.name} can use a potion.`}
         />
@@ -121,7 +129,11 @@ function WizardPotions({ state, dispatch }: ScreenProps) {
           after={[`${name}, close your eyes.`]}
         />
 
-        <SectionLabel>Dying tonight</SectionLabel>
+        <SectionLabel
+          icon="skull"
+          tone="blood">
+          Dying tonight
+        </SectionLabel>
         {danger.length === 0 && <EmptyNote>Nobody. The attack kills no one tonight.</EmptyNote>}
         {danger.length > 0 && (
           <div className="space-y-2">
@@ -135,7 +147,11 @@ function WizardPotions({ state, dispatch }: ScreenProps) {
           </div>
         )}
 
-        <SectionLabel>💚 Save potion</SectionLabel>
+        <SectionLabel
+          icon="heal"
+          tone="leaf">
+          Save potion
+        </SectionLabel>
         {!canSave && <EmptyNote>Already used.</EmptyNote>}
         {canSave && danger.length === 0 && <EmptyNote>Nobody to save tonight.</EmptyNote>}
         {canSave && danger.length > 0 && (
@@ -159,7 +175,11 @@ function WizardPotions({ state, dispatch }: ScreenProps) {
           </div>
         )}
 
-        <SectionLabel>💀 Kill potion</SectionLabel>
+        <SectionLabel
+          icon="poison"
+          tone="blood">
+          Kill potion
+        </SectionLabel>
         {!canKill && <EmptyNote>Already used.</EmptyNote>}
         {canKill && (
           <Choice
@@ -171,7 +191,9 @@ function WizardPotions({ state, dispatch }: ScreenProps) {
           />
         )}
         {canKill && killing && (
-          <div className="mt-3">
+          <div
+            ref={killGridRef}
+            className="mt-3 scroll-mb-44 scroll-mt-36">
             <Instruction tone="blood">Tap who the {name} wants to kill</Instruction>
             <PlayerGrid
               players={killTargets}
@@ -187,9 +209,10 @@ function WizardPotions({ state, dispatch }: ScreenProps) {
       <ActionBar>
         <Button
           disabled={waitingForKill}
+          icon={!waitingForKill && ROLE_ICON.wizard}
           onClick={() => dispatch({ type: "WIZARD_DECIDE", saveId, killId })}>
           {waitingForKill && "Tap who to kill"}
-          {!waitingForKill && `🧙 ${confirmLabel(state, saveId, killId)}`}
+          {!waitingForKill && confirmLabel(state, saveId, killId)}
         </Button>
       </ActionBar>
     </>
@@ -213,12 +236,16 @@ type DangerRowProps = { name: string; cause: string }
 
 function DangerRow({ name, cause }: DangerRowProps) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-blood-500/25 bg-blood-500/10 px-3 py-2.5">
+    <div className="flex min-h-16 items-center gap-3 rounded-2xl border border-blood-500/25 bg-blood-500/10 px-3 py-2.5">
       <Avatar name={name} />
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[15px] font-semibold text-mist-100">{name}</div>
-        <div className="text-[12.5px] text-blood-300">{cause}</div>
+        <div className="truncate text-[16px] font-semibold text-mist-100">{name}</div>
+        <div className="text-[14px] leading-snug text-blood-300">{cause}</div>
       </div>
+      <Icon
+        name="skull"
+        className="size-5 text-blood-400"
+      />
     </div>
   )
 }
@@ -248,28 +275,38 @@ function Choice({ selected, tone, onClick, title, detail }: ChoiceProps) {
     <button
       type="button"
       aria-pressed={selected}
-      onClick={onClick}
+      onClick={() => {
+        haptic()
+        onClick()
+      }}
       className={cx(
-        "flex min-h-[52px] w-full items-center gap-3 rounded-2xl border px-3.5 py-2.5 text-left active:scale-[0.99]",
+        "flex min-h-16 w-full items-center gap-3 rounded-2xl border px-4 py-2.5 text-left active:scale-[0.99]",
         selected && CHOICE_SELECTED[tone],
         !selected && "border-white/5 bg-night-800/80 active:bg-night-700",
       )}>
       <span
         aria-hidden
         className={cx(
-          "h-5 w-5 shrink-0 rounded-full border-2",
+          "flex size-6 shrink-0 items-center justify-center rounded-full border-2 text-night-950",
           selected && CHOICE_DOT[tone],
           !selected && "border-night-500",
+        )}>
+        {selected && (
+          <Icon
+            name="check"
+            className="size-3.5"
+            strokeWidth={4}
+          />
         )}
-      />
+      </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[15px] font-semibold text-mist-100">{title}</span>
-        {detail && <span className="block text-[12.5px] leading-snug text-mist-400">{detail}</span>}
+        <span className="block text-[16px] font-semibold text-mist-100">{title}</span>
+        {detail && <span className="block text-[14px] leading-snug text-mist-400">{detail}</span>}
       </span>
     </button>
   )
 }
 
 function EmptyNote({ children }: { children: ReactNode }) {
-  return <div className="rounded-2xl bg-night-800/50 px-4 py-3 text-[14px] text-mist-400">{children}</div>
+  return <div className="rounded-2xl bg-night-800/50 px-4 py-3.5 text-[15px] text-mist-400">{children}</div>
 }

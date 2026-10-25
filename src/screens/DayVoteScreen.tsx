@@ -2,8 +2,20 @@ import { useState } from "react"
 import type { Player } from "../game/types"
 import { isWolf, roleName } from "../game/roles"
 import { alivePlayers, eliminatedToday, playerName } from "../game/selectors"
-import { ActionBar, Avatar, Button, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
+import {
+  ActionBar,
+  Avatar,
+  Button,
+  IconTile,
+  Instruction,
+  Screen,
+  ScreenTitle,
+  ScriptCard,
+  playerTone,
+  toneText,
+} from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
+import { Icon, ROLE_ICON, playerIcon } from "../components/icons"
 import { asList, cx } from "../lib/cx"
 import { DayTimer } from "./DayTimer"
 import type { ScreenProps } from "./props"
@@ -36,7 +48,7 @@ function DayVote({ state, dispatch }: ScreenProps) {
       <Screen>
         <ScreenTitle
           eyebrow={`Day ${state.currentDay}`}
-          emoji="☀️"
+          icon="vote"
           title="Village vote"
           subtitle={`${alive.length} players alive`}
           tone="sun"
@@ -63,10 +75,11 @@ function DayVote({ state, dispatch }: ScreenProps) {
         <Button
           tone="sun"
           disabled={!selected}
+          icon={selected !== null && "vote"}
           onClick={() => {
             if (selected) dispatch({ type: "ELIMINATE_PLAYER", playerId: selected })
           }}>
-          {selected && `🗳️ Vote out ${playerName(state, selected)}`}
+          {selected && `Vote out ${playerName(state, selected)}`}
           {!selected && "Tap who's voted out"}
         </Button>
         <Button
@@ -88,30 +101,47 @@ function DayResult({ state, dispatch, player }: DayResultProps) {
       <Screen>
         <ScreenTitle
           eyebrow={`Day ${state.currentDay}`}
-          emoji="🗳️"
+          icon="vote"
           title={`${player.name} is out`}
           tone="sun"
         />
         <div
           className={cx(
-            "mb-4 flex animate-pop flex-col items-center rounded-3xl border px-4 py-7 text-center",
+            "mb-5 flex animate-pop flex-col items-center rounded-3xl border px-4 py-7 text-center",
             wolf && "border-blood-500/40 bg-blood-500/15",
             !wolf && "border-leaf-500/40 bg-leaf-500/15",
           )}>
-          <Avatar
-            name={player.name}
-            size="lg"
-          />
-          <div className="mt-2 text-lg font-semibold text-mist-100">{player.name}</div>
-          <div className="mt-3 text-5xl">
-            {wolf && "🐺"}
-            {!wolf && "😇"}
+          <div className="flex items-center gap-3">
+            <Avatar name={player.name} />
+            <div className="text-[20px] font-semibold text-mist-100">{player.name}</div>
           </div>
-          <div className={cx("mt-2 text-2xl font-bold", wolf && "text-blood-400", !wolf && "text-leaf-400")}>
+          <div className="mt-5">
+            {wolf && (
+              <IconTile
+                icon={ROLE_ICON.wolf}
+                tone="blood"
+                size="xl"
+              />
+            )}
+            {!wolf && (
+              <IconTile
+                icon="shield"
+                tone="leaf"
+                size="xl"
+              />
+            )}
+          </div>
+          <div className={cx("mt-3 text-[30px] font-bold", wolf && "text-blood-400", !wolf && "text-leaf-400")}>
             {wolf && "Was a wolf"}
             {!wolf && "Was not a wolf"}
           </div>
-          <div className="mt-1 text-[14px] text-mist-300">Card: {roleName(player.role, state.roleNames)}</div>
+          <div className="mt-2 flex items-center gap-1.5 text-[15px] text-mist-300">
+            <Icon
+              name={playerIcon(player, state.babyWolfPlayerId)}
+              className={cx("size-[18px]", toneText(playerTone(player)))}
+            />
+            Card: {roleName(player.role, state.roleNames)}
+          </div>
         </div>
         <ScriptCard
           lines={[`${player.name}, you're out of the game.`]}
@@ -119,7 +149,11 @@ function DayResult({ state, dispatch, player }: DayResultProps) {
         />
       </Screen>
       <ActionBar>
-        <Button onClick={() => dispatch({ type: "START_NEXT_NIGHT" })}>🌙 Start Night {state.currentNight + 1}</Button>
+        <Button
+          icon="moon"
+          onClick={() => dispatch({ type: "START_NEXT_NIGHT" })}>
+          Start Night {state.currentNight + 1}
+        </Button>
       </ActionBar>
     </>
   )

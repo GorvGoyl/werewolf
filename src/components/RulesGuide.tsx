@@ -1,7 +1,10 @@
 import type { Role, RoleNames } from "../game/types"
-import { ROLE_EMOJI, roleName, rolePlural } from "../game/roles"
+import { roleName, rolePlural } from "../game/roles"
 import { cx } from "../lib/cx"
-import { SectionLabel, Sheet } from "./ui"
+import type { IconName } from "./icons"
+import { Icon, ROLE_ICON } from "./icons"
+import type { Tone } from "./ui"
+import { IconTile, ROLE_TONE, SectionLabel, Sheet, toneText } from "./ui"
 
 type Team = "wolves" | "village" | "wildcard"
 
@@ -101,16 +104,19 @@ const TEAM_TEXT: Record<Team, string> = {
   wildcard: "text-sun-300",
 }
 
+type Step = { icon: IconName; tone: Tone; text: string }
+
 type Props = { roleNames: RoleNames; onClose: () => void }
 
 export function RulesGuide({ roleNames: rn, onClose }: Props) {
   const wolves = rolePlural("wolf", rn)
-  const order = [
-    `${ROLE_EMOJI.courtesan} ${roleName("courtesan", rn)}`,
-    `${ROLE_EMOJI.baby_wolf} ${roleName("baby_wolf", rn)} (Night 1 only)`,
-    `${ROLE_EMOJI.queen_wolf} ${roleName("queen_wolf", rn)} & ${wolves}`,
-    `${ROLE_EMOJI.wizard} ${roleName("wizard", rn)}`,
-    `${ROLE_EMOJI.seer} ${roleName("seer", rn)}`,
+  const order: Step[] = [
+    { icon: ROLE_ICON.courtesan, tone: ROLE_TONE.courtesan, text: roleName("courtesan", rn) },
+    { icon: ROLE_ICON.baby_wolf, tone: ROLE_TONE.baby_wolf, text: `${roleName("baby_wolf", rn)} (Night 1 only)` },
+    { icon: ROLE_ICON.wolf, tone: ROLE_TONE.wolf, text: `${roleName("queen_wolf", rn)} & ${wolves}` },
+    { icon: ROLE_ICON.wizard, tone: ROLE_TONE.wizard, text: roleName("wizard", rn) },
+    { icon: ROLE_ICON.seer, tone: ROLE_TONE.seer, text: roleName("seer", rn) },
+    { icon: "sunrise", tone: "sun", text: "Dawn: deaths are announced, then the village votes" },
   ]
 
   return (
@@ -118,30 +124,42 @@ export function RulesGuide({ roleNames: rn, onClose }: Props) {
       title="How to play"
       subtitle="Roles, night order and how to win"
       onClose={onClose}>
-      <div className="rounded-2xl border border-white/5 bg-night-800/70 p-4">
-        <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-mist-400">Who wins</div>
-        <div className="space-y-1.5 text-[15px]">
-          <div className="text-leaf-400">😇 The village wins once every {roleName("wolf", rn).toLowerCase()} is dead.</div>
-          <div className="text-blood-400">🐺 The {wolves.toLowerCase()} win when they equal or outnumber everyone else.</div>
+      <div className="space-y-3 rounded-2xl border border-white/5 bg-night-800/70 p-4">
+        <div className="text-[12px] font-bold uppercase tracking-[0.16em] text-mist-400">Who wins</div>
+        <div className="flex items-center gap-3 text-[15px] leading-snug text-leaf-400">
+          <IconTile
+            icon="person"
+            tone="leaf"
+            size="sm"
+          />
+          <span>The village wins once every {roleName("wolf", rn).toLowerCase()} is dead.</span>
+        </div>
+        <div className="flex items-center gap-3 text-[15px] leading-snug text-blood-400">
+          <IconTile
+            icon="wolf"
+            tone="blood"
+            size="sm"
+          />
+          <span>The {wolves.toLowerCase()} win when they equal or outnumber everyone else.</span>
         </div>
       </div>
 
       <SectionLabel>Every night</SectionLabel>
-      <ol className="space-y-1.5 rounded-2xl border border-white/5 bg-night-800/70 p-4 text-[15px] text-mist-200">
+      <ol className="rounded-2xl border border-white/5 bg-night-800/70 px-2 py-1.5">
         {order.map((step, i) => (
           <li
-            key={step}
-            className="flex gap-2">
-            <span className="w-5 text-mist-500">{i + 1}.</span>
-            <span>{step}</span>
+            key={step.text}
+            className="flex min-h-11 items-center gap-3 px-2 py-1.5 text-[15px] leading-snug text-mist-200">
+            <span className="w-3 shrink-0 text-right text-[13px] font-semibold tabular-nums text-mist-500">{i + 1}</span>
+            <Icon
+              name={step.icon}
+              className={cx("size-5", toneText(step.tone))}
+            />
+            <span>{step.text}</span>
           </li>
         ))}
-        <li className="flex gap-2">
-          <span className="w-5 text-mist-500">{order.length + 1}.</span>
-          <span>🌅 Dawn: deaths are announced, then the village votes</span>
-        </li>
       </ol>
-      <p className="mt-2 text-[13px] leading-snug text-mist-400">
+      <p className="mt-2.5 text-[14px] leading-snug text-mist-400">
         On Night 1 each role opens their eyes first, you tap who they are, then they act like on any other night. Roles
         nobody has are skipped, and a dead role is still called so the table can&apos;t tell.
       </p>
@@ -152,25 +170,24 @@ export function RulesGuide({ roleNames: rn, onClose }: Props) {
           <div
             key={info.role}
             className="rounded-2xl border border-white/5 bg-night-800/70 p-4">
-            <div className="flex items-start gap-3">
-              <div
-                className="shrink-0 whitespace-nowrap text-2xl tracking-tighter"
-                aria-hidden>
-                {ROLE_EMOJI[info.role]}
-              </div>
+            <div className="flex items-start gap-3.5">
+              <IconTile
+                icon={ROLE_ICON[info.role]}
+                tone={ROLE_TONE[info.role]}
+              />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-x-2">
-                  <div className="text-[16px] font-bold text-mist-100">{roleName(info.role, rn)}</div>
+                  <div className="text-[17px] font-bold text-mist-100">{roleName(info.role, rn)}</div>
                   <div className={cx("text-[11px] font-bold uppercase tracking-wide", TEAM_TEXT[info.team])}>
                     {TEAM_LABEL[info.team]}
                   </div>
                 </div>
-                <div className="mt-1 text-[14px] leading-snug text-mist-200">{info.summary}</div>
+                <div className="mt-1 text-[15px] leading-snug text-mist-200">{info.summary}</div>
                 <ul className="mt-2 space-y-1">
                   {info.details.map((detail) => (
                     <li
                       key={detail}
-                      className="flex gap-2 text-[13px] leading-snug text-mist-400">
+                      className="flex gap-2 text-[14px] leading-snug text-mist-400">
                       <span className="text-mist-500">•</span>
                       <span>{detail}</span>
                     </li>

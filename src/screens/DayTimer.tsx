@@ -1,6 +1,10 @@
+import type { ReactNode } from "react"
 import { useEffect, useRef, useState } from "react"
 import { getAudioContext, playEnd, playWarning } from "../lib/sound"
 import { cx } from "../lib/cx"
+import { haptic } from "../lib/haptics"
+import type { IconName } from "../components/icons"
+import { Icon } from "../components/icons"
 
 type Status = "idle" | "running" | "paused" | "done"
 
@@ -39,16 +43,19 @@ export function DayTimer({ minutes, onMinutesChange }: Props) {
   function tick() {
     const left = Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000))
     setRemaining(left)
+    // The phone buzzes too, for when its sound is off
     if (!warnedRef.current && left <= Math.floor(totalRef.current * 0.2)) {
       warnedRef.current = true
       const ctx = getAudioContext()
       if (ctx && left > 0) playWarning(ctx)
+      if (left > 0) haptic(200)
     }
     if (left <= 0) {
       stopTicking()
       setStatus("done")
       const ctx = getAudioContext()
       if (ctx) playEnd(ctx)
+      haptic([300, 150, 300, 150, 300])
     }
   }
 
@@ -92,34 +99,42 @@ export function DayTimer({ minutes, onMinutesChange }: Props) {
 
   if (status === "idle") {
     return (
-      <div className="mb-4 flex items-center gap-3 rounded-2xl border border-white/5 bg-night-800/80 px-3.5 py-3">
-        <span
-          className="text-xl"
-          aria-hidden>
-          ⏱️
-        </span>
+      <div className="mb-5 flex items-center gap-3 rounded-2xl border border-white/5 bg-night-800/80 py-3 pl-4 pr-3">
         <div className="min-w-0 flex-1">
-          <div className="text-[15px] font-semibold text-mist-100">Discussion timer</div>
-          <div className="flex items-center gap-1 pt-1">
+          <div className="flex items-center gap-1.5 text-[15px] font-semibold text-mist-100">
+            <Icon
+              name="timer"
+              className="size-[18px] text-sun-300"
+            />
+            Discussion timer
+          </div>
+          <div className="mt-2 flex items-center gap-1">
             <MinuteButton
               label="One minute less"
+              icon="minus"
               disabled={minutes <= 1}
-              onClick={() => onMinutesChange(minutes - 1)}>
-              −
-            </MinuteButton>
-            <span className="w-14 text-center text-[15px] font-semibold tabular-nums text-mist-200">{minutes} min</span>
+              onClick={() => onMinutesChange(minutes - 1)}
+            />
+            <span className="w-16 text-center text-[16px] font-semibold tabular-nums text-mist-100">{minutes} min</span>
             <MinuteButton
               label="One minute more"
+              icon="plus"
               disabled={minutes >= 15}
-              onClick={() => onMinutesChange(minutes + 1)}>
-              +
-            </MinuteButton>
+              onClick={() => onMinutesChange(minutes + 1)}
+            />
           </div>
         </div>
         <button
           type="button"
-          onClick={start}
-          className="h-11 rounded-xl bg-sun-400 px-5 text-[15px] font-bold text-night-950 active:bg-sun-500">
+          onClick={() => {
+            haptic(15)
+            start()
+          }}
+          className="flex h-14 shrink-0 items-center gap-2 rounded-2xl bg-sun-400 pl-4 pr-5 text-[17px] font-bold text-night-950 active:scale-[0.97] active:bg-sun-500">
+          <Icon
+            name="play"
+            className="size-5"
+          />
           Start
         </button>
       </div>
@@ -130,15 +145,17 @@ export function DayTimer({ minutes, onMinutesChange }: Props) {
   const warning = status === "running" && progress >= 0.8
   const done = status === "done"
 
+  // Pinned under the header, so it stays in sight while you scroll to the players
   return (
     <div
       className={cx(
-        "mb-4 overflow-hidden rounded-2xl border",
-        done && "border-blood-500/50 bg-blood-500/15",
-        warning && "border-sun-400/40 bg-sun-400/10",
-        !done && !warning && "border-white/5 bg-night-800/80",
+        "sticky top-[calc(env(safe-area-inset-top)+4rem)] z-10 mb-5 overflow-hidden rounded-2xl border bg-night-850 shadow-lg shadow-black/50",
+        done && "border-blood-500/50",
+        warning && "border-sun-400/40",
+        !done && !warning && "border-white/10",
       )}>
-      <div className="flex items-center gap-3 px-3.5 py-3">
+      <div
+        className={cx("flex items-center gap-2 py-3 pl-4 pr-3", done && "bg-blood-500/15", warning && "bg-sun-400/10")}>
         <div className="min-w-0 flex-1">
           <div
             className={cx(
@@ -151,7 +168,7 @@ export function DayTimer({ minutes, onMinutesChange }: Props) {
           </div>
           <div
             className={cx(
-              "text-[40px] font-bold leading-none tabular-nums",
+              "text-[44px] font-bold leading-none tabular-nums",
               done && "text-blood-400",
               warning && "text-sun-300",
               !done && !warning && "text-mist-100",
@@ -159,9 +176,25 @@ export function DayTimer({ minutes, onMinutesChange }: Props) {
             {formatTime(remaining)}
           </div>
         </div>
-        {status === "running" && <TimerButton onClick={pause}>Pause</TimerButton>}
-        {status === "paused" && <TimerButton onClick={resume}>Resume</TimerButton>}
-        <TimerButton onClick={reset}>Reset</TimerButton>
+        {status === "running" && (
+          <TimerButton
+            icon="pause"
+            onClick={pause}>
+            Pause
+          </TimerButton>
+        )}
+        {status === "paused" && (
+          <TimerButton
+            icon="play"
+            onClick={resume}>
+            Resume
+          </TimerButton>
+        )}
+        <TimerButton
+          icon="replay"
+          onClick={reset}>
+          Reset
+        </TimerButton>
       </div>
       <div className="h-1.5 bg-white/5">
         <div
@@ -178,29 +211,40 @@ export function DayTimer({ minutes, onMinutesChange }: Props) {
   )
 }
 
-type MinuteButtonProps = { label: string; disabled: boolean; onClick: () => void; children: string }
+type MinuteButtonProps = { label: string; icon: IconName; disabled: boolean; onClick: () => void }
 
-function MinuteButton({ label, disabled, onClick, children }: MinuteButtonProps) {
+function MinuteButton({ label, icon, disabled, onClick }: MinuteButtonProps) {
   return (
     <button
       type="button"
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex h-9 w-9 items-center justify-center rounded-lg bg-night-700 text-lg font-semibold text-mist-100 active:bg-night-600 disabled:text-mist-500">
-      {children}
+      className="flex size-11 items-center justify-center rounded-xl bg-night-700 text-mist-100 active:scale-95 active:bg-night-600 disabled:text-mist-500 disabled:active:scale-100">
+      <Icon
+        name={icon}
+        className="size-5"
+        strokeWidth={2.5}
+      />
     </button>
   )
 }
 
-type TimerButtonProps = { onClick: () => void; children: string }
+type TimerButtonProps = { icon: IconName; onClick: () => void; children: ReactNode }
 
-function TimerButton({ onClick, children }: TimerButtonProps) {
+function TimerButton({ icon, onClick, children }: TimerButtonProps) {
   return (
     <button
       type="button"
-      onClick={onClick}
-      className="h-11 rounded-xl border border-white/10 bg-night-800 px-3.5 text-[14px] font-semibold text-mist-200 active:bg-night-700">
+      onClick={() => {
+        haptic()
+        onClick()
+      }}
+      className="flex h-14 min-w-16 flex-col items-center justify-center gap-0.5 rounded-xl border border-white/10 bg-night-800 px-2 text-[12px] font-semibold text-mist-200 active:scale-95 active:bg-night-700">
+      <Icon
+        name={icon}
+        className="size-5"
+      />
       {children}
     </button>
   )

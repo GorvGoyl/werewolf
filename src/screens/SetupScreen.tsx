@@ -3,7 +3,8 @@ import { useRef, useState } from "react"
 import { MIN_PLAYERS } from "../game/types"
 import type { Player } from "../game/types"
 import { sameName, splitNames } from "../game/reducer"
-import { ActionBar, Avatar, Button, Screen, ScreenTitle, SectionLabel } from "../components/ui"
+import { ActionBar, Avatar, Button, Screen, ScreenTitle, SectionLabel, TextButton } from "../components/ui"
+import { Icon } from "../components/icons"
 import { InstallBanner } from "../components/Install"
 import { cx } from "../lib/cx"
 import type { ScreenProps } from "./props"
@@ -56,7 +57,7 @@ export function SetupScreen({ state, dispatch, onInstall }: Props) {
         <InstallBanner onInstall={onInstall} />
         <ScreenTitle
           eyebrow="New game"
-          emoji="🐺"
+          icon="users"
           title="Who's playing?"
           subtitle={playersLabel(count)}
         />
@@ -77,27 +78,31 @@ export function SetupScreen({ state, dispatch, onInstall }: Props) {
             autoCorrect="off"
             spellCheck={false}
             enterKeyHint="done"
-            className="h-[52px] min-w-0 flex-1 rounded-2xl border border-white/10 bg-night-800 px-4 text-[16px] text-mist-100 placeholder-mist-500 outline-none focus:border-moon-400 focus:ring-2 focus:ring-moon-400/30"
+            className="h-14 min-w-0 flex-1 rounded-2xl border border-white/10 bg-night-800 px-4 text-[17px] text-mist-100 placeholder-mist-500 outline-none focus:border-moon-400 focus:ring-2 focus:ring-moon-400/30"
           />
           <button
             type="submit"
             disabled={!draft.trim()}
-            className="h-[52px] shrink-0 rounded-2xl bg-moon-500 px-5 text-[16px] font-semibold text-white active:bg-moon-600 disabled:bg-night-700 disabled:text-mist-500">
+            className="flex h-14 shrink-0 items-center gap-1.5 rounded-2xl bg-moon-500 pl-4 pr-5 text-[17px] font-semibold text-white active:bg-moon-600 disabled:bg-night-700 disabled:text-mist-500">
+            <Icon
+              name="plus"
+              className="size-5"
+              strokeWidth={2.5}
+            />
             Add
           </button>
         </form>
-        <p className="mt-2 text-[12px] text-mist-500">Tip: paste a list of names separated by commas or new lines.</p>
+        <p className="mt-2 text-[13px] text-mist-400">Tip: paste a list of names separated by commas or new lines.</p>
 
         {count > 0 && (
           <>
             <SectionLabel
               action={
-                <button
-                  type="button"
-                  onClick={() => dispatch({ type: "REMOVE_ALL_PLAYERS" })}
-                  className="rounded-full px-2 py-1 text-[12px] font-semibold text-mist-400 active:text-blood-400">
+                <TextButton
+                  icon="trash"
+                  onClick={() => dispatch({ type: "REMOVE_ALL_PLAYERS" })}>
                   Clear all
-                </button>
+                </TextButton>
               }>
               In this game · {count}
             </SectionLabel>
@@ -112,23 +117,30 @@ export function SetupScreen({ state, dispatch, onInstall }: Props) {
           <>
             <SectionLabel
               action={
-                <div className="flex gap-1">
+                <>
                   {!managing && suggestions.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => dispatch({ type: "ADD_PLAYERS", names: suggestions })}
-                      className="rounded-full px-2 py-1 text-[12px] font-semibold text-moon-300 active:text-moon-400">
+                    <TextButton
+                      icon="plus"
+                      tone="moon"
+                      onClick={() => dispatch({ type: "ADD_PLAYERS", names: suggestions })}>
                       Add all
-                    </button>
+                    </TextButton>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => setManaging(!managing)}
-                    className="rounded-full px-2 py-1 text-[12px] font-semibold text-mist-400 active:text-mist-200">
-                    {managing && "Done"}
-                    {!managing && "Edit"}
-                  </button>
-                </div>
+                  {managing && (
+                    <TextButton
+                      icon="check"
+                      onClick={() => setManaging(false)}>
+                      Done
+                    </TextButton>
+                  )}
+                  {!managing && (
+                    <TextButton
+                      icon="pencil"
+                      onClick={() => setManaging(true)}>
+                      Edit
+                    </TextButton>
+                  )}
+                </>
               }>
               Saved players
             </SectionLabel>
@@ -138,7 +150,7 @@ export function SetupScreen({ state, dispatch, onInstall }: Props) {
               onAdd={(name) => dispatch({ type: "ADD_PLAYERS", names: [name] })}
               onForget={(name) => dispatch({ type: "FORGET_SAVED_NAME", name })}
             />
-            {managing && <p className="mt-2 text-[12px] text-mist-500">Tap a name to forget it.</p>}
+            {managing && <p className="mt-2.5 text-[13px] text-mist-400">Tap a name to forget it.</p>}
           </>
         )}
       </Screen>
@@ -146,6 +158,7 @@ export function SetupScreen({ state, dispatch, onInstall }: Props) {
       <ActionBar>
         <Button
           disabled={count < MIN_PLAYERS}
+          icon={count >= MIN_PLAYERS && "mask"}
           onClick={() => dispatch({ type: "START_ROLE_CONFIG" })}>
           {nextLabel(count)}
         </Button>
@@ -162,18 +175,21 @@ function PlayerList({ players, onRemove }: PlayerListProps) {
       {players.map((player) => (
         <li
           key={player.id}
-          className="flex min-h-[52px] animate-pop items-center gap-2 rounded-2xl border border-white/5 bg-night-800/90 py-1.5 pl-2 pr-1">
+          className="flex min-h-14 animate-pop items-center gap-2.5 rounded-2xl border border-white/5 bg-night-800/90 py-1.5 pl-2.5 pr-1">
           <Avatar
             name={player.name}
             size="sm"
           />
-          <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-mist-100">{player.name}</span>
+          <span className="min-w-0 flex-1 truncate text-[16px] font-semibold text-mist-100">{player.name}</span>
           <button
             type="button"
             onClick={() => onRemove(player.id)}
             aria-label={`Remove ${player.name}`}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl text-mist-500 active:bg-white/5 active:text-blood-400">
-            ×
+            className="flex size-11 shrink-0 items-center justify-center rounded-xl text-mist-400 active:bg-white/5 active:text-blood-400">
+            <Icon
+              name="x"
+              className="size-5"
+            />
           </button>
         </li>
       ))}
@@ -200,14 +216,22 @@ function SavedNames({ names, managing, onAdd, onForget }: SavedNamesProps) {
             if (!managing) onAdd(name)
           }}
           className={cx(
-            "flex h-10 items-center gap-1.5 rounded-full border px-3.5 text-[14px] font-semibold active:scale-[0.97]",
+            "flex h-11 items-center gap-1.5 rounded-full border pl-3 pr-4 text-[15px] font-semibold active:scale-[0.97]",
             managing && "border-blood-500/40 bg-blood-500/10 text-blood-300",
             !managing && "border-white/10 bg-night-800/80 text-mist-200 active:bg-night-700",
           )}>
-          <span aria-hidden>
-            {managing && "✕"}
-            {!managing && "+"}
-          </span>
+          {managing && (
+            <Icon
+              name="x"
+              className="size-4"
+            />
+          )}
+          {!managing && (
+            <Icon
+              name="plus"
+              className="size-4"
+            />
+          )}
           {name}
         </button>
       ))}

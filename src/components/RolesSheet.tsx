@@ -1,8 +1,10 @@
 import type { GameAction, GameState } from "../game/types"
-import { ROLE_EMOJI, getLineup, roleName } from "../game/roles"
+import { getLineup, roleName } from "../game/roles"
 import { getPlayer, playerName } from "../game/selectors"
+import type { IconName } from "./icons"
+import { Icon, ROLE_ICON } from "./icons"
 import { RoleList } from "./RoleList"
-import { SectionLabel, Sheet, Switch } from "./ui"
+import { RoleChip, SectionLabel, Sheet, Switch } from "./ui"
 
 type Props = {
   state: GameState
@@ -10,7 +12,7 @@ type Props = {
   onClose: () => void
 }
 
-type StatusItem = { icon: string; text: string }
+type StatusItem = { icon: IconName; text: string }
 
 function potionText(used: boolean): string {
   if (used) return "used"
@@ -33,18 +35,18 @@ function statusItems(state: GameState): StatusItem[] {
 
   if (config.hasWizard) {
     items.push({
-      icon: ROLE_EMOJI.wizard,
+      icon: ROLE_ICON.wizard,
       text: `${roleName("wizard", rn)}: save potion ${potionText(state.wizardSavePotionUsed)}, kill potion ${potionText(state.wizardKillPotionUsed)}`,
     })
   }
   if (config.hasCourtesan && state.lastCourtesanGuest) {
     items.push({
-      icon: ROLE_EMOJI.courtesan,
+      icon: ROLE_ICON.courtesan,
       text: `${roleName("courtesan", rn)}'s last guest: ${playerName(state, state.lastCourtesanGuest)}`,
     })
   }
   const baby = babyWolfStatus(state)
-  if (config.hasBabyWolf && baby) items.push({ icon: ROLE_EMOJI.baby_wolf, text: baby })
+  if (config.hasBabyWolf && baby) items.push({ icon: ROLE_ICON.baby_wolf, text: baby })
 
   const checks = [...state.nightEvents, state.currentNightEvent]
   for (const night of checks) {
@@ -52,7 +54,7 @@ function statusItems(state: GameState): StatusItem[] {
     let verdict = "not a wolf"
     if (night.seerResult === "wolf") verdict = "wolf"
     items.push({
-      icon: ROLE_EMOJI.seer,
+      icon: ROLE_ICON.seer,
       text: `Night ${night.night}: ${roleName("seer", rn)} saw ${playerName(state, night.seerChecked)} as ${verdict}`,
     })
   }
@@ -68,17 +70,24 @@ export function RolesSheet({ state, dispatch, onClose }: Props) {
   return (
     <Sheet
       title="Roles"
-      subtitle="Keep this screen to yourself 🤫"
+      subtitle={
+        <span className="flex items-center gap-1.5">
+          <Icon
+            name="eyeOff"
+            className="size-4"
+          />
+          Keep this screen to yourself
+        </span>
+      }
       onClose={onClose}>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-2">
         {lineup.map(({ role, count }) => (
-          <span
+          <RoleChip
             key={role}
-            className="flex h-8 items-center gap-1 rounded-full border border-white/10 bg-night-800/80 px-2.5 text-[13px] font-semibold text-mist-200">
-            <span aria-hidden>{ROLE_EMOJI[role]}</span>
-            {roleName(role, rn)}
-            {count > 1 && <span className="text-mist-400">×{count}</span>}
-          </span>
+            role={role}
+            label={roleName(role, rn)}
+            count={count}
+          />
         ))}
       </div>
 
@@ -87,12 +96,15 @@ export function RolesSheet({ state, dispatch, onClose }: Props) {
       {status.length > 0 && (
         <>
           <SectionLabel>Game notes</SectionLabel>
-          <ul className="space-y-1.5">
+          <ul className="space-y-2">
             {status.map((item) => (
               <li
                 key={item.text}
-                className="flex gap-2.5 rounded-2xl border border-white/5 bg-night-800/70 px-3.5 py-2.5 text-[14px] leading-snug text-mist-200">
-                <span aria-hidden>{item.icon}</span>
+                className="flex gap-3 rounded-2xl border border-white/5 bg-night-800/70 px-4 py-3 text-[15px] leading-snug text-mist-200">
+                <Icon
+                  name={item.icon}
+                  className="mt-px size-5 text-mist-300"
+                />
                 <span>{item.text}</span>
               </li>
             ))}
