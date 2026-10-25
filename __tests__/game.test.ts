@@ -8,7 +8,7 @@ import {
 } from "../src/game/reducer"
 import { getPlayersInDanger, resolveDeaths } from "../src/game/deaths"
 import { getLineup, isConfigValid, isWolf, pluralize, rolePlural } from "../src/game/roles"
-import { getWolvesStep } from "../src/game/selectors"
+import { getTimeline, getWolvesStep } from "../src/game/selectors"
 import { applyImport, readImportFromHash, sanitizeState } from "../src/game/storage"
 import { detectPlatform } from "../src/lib/install"
 import type { GameAction, GameConfig, GameState, Player } from "../src/game/types"
@@ -841,5 +841,91 @@ describe("Install", () => {
     expect(detectPlatform(iphone, 5)).toBe("ios")
     expect(detectPlatform(mac, 5)).toBe("ios") // an iPad asking for the desktop site
     expect(detectPlatform(mac, 0)).toBe("desktop")
+  })
+})
+
+// ===========================
+// 15. TIMELINE
+// ===========================
+describe("Timeline", () => {
+  function summary(state: GameState) {
+    return getTimeline(state).map((c) => [c.kind, c.number, c.now])
+  }
+
+  it("is empty before the game starts", () => {
+    expect(getTimeline(setupGame())).toEqual([])
+  })
+
+  it("lists every night and day so far, oldest first", () => {
+    let state = buildGameWithRoles()
+    state = run(state, { type: "ELIMINATE_PLAYER", playerId: idOf(state, "julia") }, { type: "START_NEXT_NIGHT" })
+    state = run(
+      state,
+      { type: "SET_COURTESAN_GUEST", playerId: idOf(state, "ali") },
+      { type: "SET_WOLF_TARGET", playerId: idOf(state, "liana") },
+      { type: "WIZARD_DECIDE", saveId: null, killId: null },
+      { type: "SKIP_TO_NEXT_PHASE" },
+      { type: "START_DAY" },
+    )
+    expect(summary(state)).toEqual([
+      ["night", 1, false],
+      ["day", 1, false],
+      ["night", 2, false],
+      ["day", 2, true],
+    ])
+    const [, day1, night2] = getTimeline(state)
+    expect(day1).toMatchObject({ events: [{ eliminated: idOf(state, "julia"), revealedRole: "villager" }] })
+    expect(night2).toMatchObject({
+      event: { courtesanGuest: idOf(state, "ali"), deaths: [{ playerId: idOf(state, "liana"), cause: "wolves" }] },
+    })
+  })
+
+  it("shows the night being played with what happened so far", () => {
+    let state = run(buildGameWithRoles(), { type: "SKIP_ELIMINATION" })
+    state = run(
+      state,
+      { type: "SET_COURTESAN_GUEST", playerId: idOf(state, "ali") },
+      { type: "SET_WOLF_TARGET", playerId: idOf(state, "liana") },
+    )
+    expect(summary(state)).toEqual([
+      ["night", 1, false],
+      ["day", 1, false],
+      ["night", 2, true],
+    ])
+    expect(getTimeline(state)[2]).toMatchObject({
+      event: { courtesanGuest: idOf(state, "ali"), wolfTarget: idOf(state, "liana") },
+    })
+  })
+
+  it("keeps a day nobody was voted out", () => {
+    const state = run(buildGameWithRoles(), { type: "SKIP_ELIMINATION" })
+    expect(getTimeline(state)[1]).toEqual({
+      kind: "day",
+      number: 1,
+      events: [{ day: 1, eliminated: null, revealedRole: null }],
+      now: false,
+    })
+  })
+
+  it("the day stops being now once someone is voted out", () => {
+    let state = buildGameWithRoles()
+    expect(getTimeline(state).at(-1)).toMatchObject({ kind: "day", number: 1, now: true, events: [] })
+    state = run(state, { type: "ELIMINATE_PLAYER", playerId: idOf(state, "julia") })
+    expect(state.currentPhase).toEqual({ type: "day_vote" })
+    expect(getTimeline(state).at(-1)).toMatchObject({ kind: "day", number: 1, now: false })
+  })
+
+  it("ends with the night the wolves won", () => {
+    let state = run(setupGame(["A", "B", "C", "D", "E"]), {
+      type: "SET_GAME_CONFIG",
+      config: { wolfCount: 2, hasQueenWolf: false, hasBabyWolf: false, hasCourtesan: false, hasWizard: false, hasSeer: false },
+    })
+    state = run(
+      state,
+      { type: "ASSIGN_WOLVES", playerIds: [idOf(state, "A"), idOf(state, "B")] },
+      { type: "SET_WOLF_TARGET", playerId: idOf(state, "C") },
+    )
+    expect(state.currentPhase.type).toBe("game_over")
+    expect(summary(state)).toEqual([["night", 1, false]])
   })
 })

@@ -346,6 +346,24 @@ const ICONS = {
       <path d="M12 6.5v14" />
     </>
   ),
+  // Nights and days strung on a line, for the game's history
+  timeline: (
+    <>
+      <circle
+        {...TINT}
+        cx="5.5"
+        cy="5.5"
+        r="2.5"
+      />
+      <circle
+        {...TINT}
+        cx="5.5"
+        cy="18.5"
+        r="2.5"
+      />
+      <path d="M5.5 9v6M11 5.5h9.5M11 18.5h9.5" />
+    </>
+  ),
   pencil: (
     <>
       <path
@@ -441,6 +459,7 @@ const ICONS = {
   plus: <path d="M12 5v14m-7-7h14" />,
   minus: <path d="M5 12h14" />,
   arrowLeft: <path d="M19 12H5m6-6-6 6 6 6" />,
+  chevronDown: <path d="m6 9.5 6 6 6-6" />,
   dots: (
     <>
       <circle

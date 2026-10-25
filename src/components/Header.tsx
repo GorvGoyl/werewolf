@@ -26,14 +26,24 @@ type Props = {
   canUndo: boolean
   onUndo: () => void
   onOpenRoles: () => void
+  onOpenHistory: () => void
   onOpenMenu: () => void
 }
 
-export function Header({ state, canUndo, onUndo, onOpenRoles, onOpenMenu }: Props) {
+export function Header({ state, canUndo, onUndo, onOpenRoles, onOpenHistory, onOpenMenu }: Props) {
   const phase = state.currentPhase
   const inGame = phase.type !== "setup" && phase.type !== "role_config"
   const night = isNightStep(phase) || phase.type === "night_results"
   const label = phaseLabel(state)
+  const phaseText = (
+    <>
+      <Icon
+        name={label.icon}
+        className={cx("size-[18px]", toneText(label.tone))}
+      />
+      <span className="truncate">{label.text}</span>
+    </>
+  )
 
   return (
     <header className="pt-safe sticky top-0 z-30 border-b border-white/5 bg-night-950/90 backdrop-blur-md">
@@ -46,14 +56,29 @@ export function Header({ state, canUndo, onUndo, onOpenRoles, onOpenMenu }: Prop
             name="undo"
             className="size-5"
           />
-          Undo
+          {/* On narrow phones the arrow alone leaves room for the phase */}
+          <span className="max-[399px]:sr-only">Undo</span>
         </HeaderButton>
-        <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5 text-[15px] font-semibold text-mist-200">
-          <Icon
-            name={label.icon}
-            className={cx("size-[18px]", toneText(label.tone))}
-          />
-          <span className="truncate">{label.text}</span>
+        <div className="flex min-w-0 flex-1 justify-center">
+          {/* The phase opens the story so far, night by night and day by day */}
+          {inGame && (
+            <button
+              type="button"
+              onClick={onOpenHistory}
+              aria-label={`${label.text}: see what happened so far`}
+              aria-haspopup="dialog"
+              className="flex h-11 min-w-0 items-center gap-1.5 rounded-full pl-3 pr-2 text-[15px] font-semibold text-mist-100 active:scale-[0.97] active:bg-white/10">
+              {phaseText}
+              <Icon
+                name="chevronDown"
+                className="size-4 text-mist-400"
+                strokeWidth={2.5}
+              />
+            </button>
+          )}
+          {!inGame && (
+            <div className="flex min-w-0 items-center gap-1.5 text-[15px] font-semibold text-mist-200">{phaseText}</div>
+          )}
         </div>
         {inGame && (
           <HeaderButton

@@ -9,6 +9,7 @@ type Props = {
   onOpenRules: () => void
   onOpenRoleNames: () => void
   onOpenRoles: () => void
+  onOpenHistory: () => void
   onInstall: () => void
   onNewGame: () => void
   onCopyState: () => void
@@ -22,6 +23,7 @@ export function Menu({
   onOpenRules,
   onOpenRoleNames,
   onOpenRoles,
+  onOpenHistory,
   onInstall,
   onNewGame,
   onCopyState,
@@ -45,6 +47,14 @@ export function Menu({
           icon="mask"
           onClick={onOpenRoles}>
           Everyone&apos;s roles
+        </MenuItem>
+      )}
+      {inGame && (
+        <MenuItem
+          icon="timeline"
+          hint="Every night and day so far"
+          onClick={onOpenHistory}>
+          What happened
         </MenuItem>
       )}
       {!installed && (

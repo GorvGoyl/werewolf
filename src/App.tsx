@@ -7,6 +7,7 @@ import { MAX_HISTORY, saveHistory, saveState } from "./game/storage"
 import { Header } from "./components/Header"
 import { Menu, NewGameSheet } from "./components/Menu"
 import { RolesSheet } from "./components/RolesSheet"
+import { HistorySheet } from "./components/HistorySheet"
 import { RulesGuide } from "./components/RulesGuide"
 import { RoleNamesEditor } from "./components/RoleNamesEditor"
 import { InstallSheet } from "./components/Install"
@@ -24,7 +25,7 @@ import { GameOverScreen } from "./screens/GameOverScreen"
 import { useWakeLock } from "./lib/useWakeLock"
 import { cx } from "./lib/cx"
 
-type Overlay = "menu" | "new_game" | "roles" | "rules" | "names" | "install"
+type Overlay = "menu" | "new_game" | "roles" | "history" | "rules" | "names" | "install"
 
 // Settings changes aren't steps of the game, so undo skips them
 const NOT_UNDOABLE: Array<GameAction["type"]> = [
@@ -167,6 +168,7 @@ export function App({ boot }: Props) {
         canUndo={historyLength > 0}
         onUndo={undo}
         onOpenRoles={() => openOverlay("roles")}
+        onOpenHistory={() => openOverlay("history")}
         onOpenMenu={() => openOverlay("menu")}
       />
       <CurrentScreen
@@ -184,6 +186,7 @@ export function App({ boot }: Props) {
           onOpenRules={() => openOverlay("rules")}
           onOpenRoleNames={() => openOverlay("names")}
           onOpenRoles={() => openOverlay("roles")}
+          onOpenHistory={() => openOverlay("history")}
           onInstall={installFromMenu}
           onNewGame={startNewGame}
           onCopyState={() => {
@@ -205,6 +208,12 @@ export function App({ boot }: Props) {
         <RolesSheet
           state={state}
           dispatch={dispatch}
+          onClose={closeOverlay}
+        />
+      )}
+      {overlay === "history" && (
+        <HistorySheet
+          state={state}
           onClose={closeOverlay}
         />
       )}

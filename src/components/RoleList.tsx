@@ -39,7 +39,7 @@ export function deathLabel(state: GameState, playerId: string): string | null {
   return null
 }
 
-function roleLabel(state: GameState, player: Player): string {
+export function roleLabel(state: GameState, player: Player): string {
   const rn = state.roleNames
   if (player.role === null) return "?"
   if (player.id === state.babyWolfPlayerId && player.role === "wolf") {

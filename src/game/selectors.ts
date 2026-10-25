@@ -1,6 +1,6 @@
-import type { GameState, NightEvent, Player, Role } from "./types"
+import type { DayEvent, GameState, NightEvent, Player, Role } from "./types"
 import { getRegularWolfCount, isWolf } from "./roles"
-import { isBabyWolfBitten } from "./reducer"
+import { isBabyWolfBitten, isNightStep } from "./reducer"
 
 export function getPlayer(state: GameState, id: string | null | undefined): Player | undefined {
   if (!id) return undefined
@@ -80,6 +80,30 @@ export function eliminatedToday(state: GameState): Player[] {
     .filter((d) => d.day === state.currentDay && d.eliminated)
     .map((d) => getPlayer(state, d.eliminated))
     .filter((p): p is Player => !!p)
+}
+
+// One night or one day of the game. `now` marks the one being played, before it has a result.
+export type Chapter =
+  | { kind: "night"; number: number; event: NightEvent; now: false }
+  | { kind: "night"; number: number; event: Partial<NightEvent>; now: true }
+  | { kind: "day"; number: number; events: DayEvent[]; now: boolean }
+
+// Every night and day so far, oldest first
+export function getTimeline(state: GameState): Chapter[] {
+  const chapters: Chapter[] = []
+  const last = Math.max(state.currentNight, state.currentDay)
+  for (let n = 1; n <= last; n++) {
+    const night = state.nightEvents.find((e) => e.night === n)
+    if (night) chapters.push({ kind: "night", number: n, event: night, now: false })
+    if (!night && n === state.currentNight && isNightStep(state.currentPhase)) {
+      chapters.push({ kind: "night", number: n, event: state.currentNightEvent, now: true })
+    }
+    if (n > state.currentDay) continue
+    const events = state.dayEvents.filter((e) => e.day === n)
+    const voting = state.currentPhase.type === "day_vote" && n === state.currentDay
+    chapters.push({ kind: "day", number: n, events, now: voting && events.length === 0 })
+  }
+  return chapters
 }
 
 export function isGameRunning(state: GameState): boolean {
