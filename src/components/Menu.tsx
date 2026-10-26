@@ -44,7 +44,7 @@ export function Menu({
       </MenuItem>
       {inGame && (
         <MenuItem
-          icon="mask"
+          icon="cards"
           onClick={onOpenRoles}>
           Everyone&apos;s roles
         </MenuItem>
@@ -67,7 +67,7 @@ export function Menu({
       )}
       <div className="mx-2.5 my-1.5 border-t border-white/5" />
       <MenuItem
-        icon="replay"
+        icon="restart"
         hint="Same players, new roles"
         onClick={onNewGame}>
         New game
@@ -112,7 +112,7 @@ export function NewGameSheet({ onConfirm, onClose }: NewGameSheetProps) {
       onClose={onClose}>
       <div className="flex items-start gap-3.5 px-2 pt-2">
         <IconTile
-          icon="replay"
+          icon="restart"
           tone="blood"
         />
         <div className="min-w-0 flex-1">
@@ -125,7 +125,7 @@ export function NewGameSheet({ onConfirm, onClose }: NewGameSheetProps) {
       <div className="mt-5 flex flex-col gap-1.5 px-1 pb-2">
         <Button
           tone="blood"
-          icon="replay"
+          icon="restart"
           onClick={onConfirm}>
           New game
         </Button>

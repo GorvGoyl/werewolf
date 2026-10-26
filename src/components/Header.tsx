@@ -4,21 +4,19 @@ import { isNightStep } from "../game/reducer"
 import { cx } from "../lib/cx"
 import type { IconName } from "./icons"
 import { Icon } from "./icons"
-import type { Tone } from "./ui"
-import { toneText } from "./ui"
 import { NightProgress } from "./NightProgress"
 
-type PhaseLabel = { icon: IconName; tone: Tone; text: string }
+type PhaseLabel = { icon: IconName; text: string }
 
 function phaseLabel(state: GameState): PhaseLabel {
   const phase = state.currentPhase
-  if (phase.type === "setup") return { icon: "users", tone: "moon", text: "Players" }
-  if (phase.type === "role_config") return { icon: "mask", tone: "moon", text: "Roles" }
-  if (phase.type === "night_results") return { icon: "sunrise", tone: "sun", text: "Dawn" }
-  if (phase.type === "day_vote") return { icon: "sun", tone: "sun", text: `Day ${state.currentDay}` }
-  if (phase.type === "game_over" && phase.winner === "village") return { icon: "flag", tone: "leaf", text: "Game over" }
-  if (phase.type === "game_over") return { icon: "flag", tone: "blood", text: "Game over" }
-  return { icon: "moon", tone: "moon", text: `Night ${state.currentNight}` }
+  if (phase.type === "setup") return { icon: "users", text: "Players" }
+  if (phase.type === "role_config") return { icon: "cards", text: "Roles" }
+  if (phase.type === "night_results") return { icon: "sunrise", text: "Dawn" }
+  if (phase.type === "day_vote") return { icon: "sun", text: `Day ${state.currentDay}` }
+  if (phase.type === "game_over" && phase.winner === "village") return { icon: "trophy", text: "Game over" }
+  if (phase.type === "game_over") return { icon: "wolf", text: "Game over" }
+  return { icon: "moon", text: `Night ${state.currentNight}` }
 }
 
 type Props = {
@@ -39,7 +37,7 @@ export function Header({ state, canUndo, onUndo, onOpenRoles, onOpenHistory, onO
     <>
       <Icon
         name={label.icon}
-        className={cx("size-[18px]", toneText(label.tone))}
+        className="size-6"
       />
       <span className="truncate">{label.text}</span>
     </>
@@ -67,7 +65,7 @@ export function Header({ state, canUndo, onUndo, onOpenRoles, onOpenHistory, onO
               onClick={onOpenHistory}
               aria-label={`${label.text}: see what happened so far`}
               aria-haspopup="dialog"
-              className="flex h-11 min-w-0 items-center gap-1.5 rounded-full pl-3 pr-2 text-[15px] font-semibold text-mist-100 active:scale-[0.97] active:bg-white/10">
+              className="flex h-11 min-w-0 items-center gap-2 rounded-full pl-2.5 pr-2 text-[15px] font-semibold text-mist-100 active:scale-[0.97] active:bg-white/10">
               {phaseText}
               <Icon
                 name="chevronDown"
@@ -77,7 +75,7 @@ export function Header({ state, canUndo, onUndo, onOpenRoles, onOpenHistory, onO
             </button>
           )}
           {!inGame && (
-            <div className="flex min-w-0 items-center gap-1.5 text-[15px] font-semibold text-mist-200">{phaseText}</div>
+            <div className="flex min-w-0 items-center gap-2 text-[15px] font-semibold text-mist-200">{phaseText}</div>
           )}
         </div>
         {inGame && (
@@ -86,8 +84,8 @@ export function Header({ state, canUndo, onUndo, onOpenRoles, onOpenHistory, onO
             label="See every player's role"
             highlight>
             <Icon
-              name="mask"
-              className="size-5"
+              name="cards"
+              className="-ml-1 size-6"
             />
             Roles
           </HeaderButton>

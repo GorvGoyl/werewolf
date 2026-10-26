@@ -129,11 +129,7 @@ function WizardPotions({ state, dispatch }: ScreenProps) {
           after={[`${name}, close your eyes.`]}
         />
 
-        <SectionLabel
-          icon="skull"
-          tone="blood">
-          Dying tonight
-        </SectionLabel>
+        <SectionLabel icon="skull">Dying tonight</SectionLabel>
         {danger.length === 0 && <EmptyNote>Nobody. The attack kills no one tonight.</EmptyNote>}
         {danger.length > 0 && (
           <div className="space-y-2">
@@ -147,11 +143,7 @@ function WizardPotions({ state, dispatch }: ScreenProps) {
           </div>
         )}
 
-        <SectionLabel
-          icon="heal"
-          tone="leaf">
-          Save potion
-        </SectionLabel>
+        <SectionLabel icon="heal">Save potion</SectionLabel>
         {!canSave && <EmptyNote>Already used.</EmptyNote>}
         {canSave && danger.length === 0 && <EmptyNote>Nobody to save tonight.</EmptyNote>}
         {canSave && danger.length > 0 && (
@@ -175,11 +167,7 @@ function WizardPotions({ state, dispatch }: ScreenProps) {
           </div>
         )}
 
-        <SectionLabel
-          icon="poison"
-          tone="blood">
-          Kill potion
-        </SectionLabel>
+        <SectionLabel icon="poison">Kill potion</SectionLabel>
         {!canKill && <EmptyNote>Already used.</EmptyNote>}
         {canKill && (
           <Choice
@@ -244,7 +232,7 @@ function DangerRow({ name, cause }: DangerRowProps) {
       </div>
       <Icon
         name="skull"
-        className="size-5 text-blood-400"
+        className="size-8"
       />
     </div>
   )

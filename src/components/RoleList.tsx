@@ -82,7 +82,7 @@ function RoleRow({ state, player }: RoleRowProps) {
     <div
       className={cx(
         "flex min-h-16 items-center gap-3 rounded-2xl border border-white/5 bg-night-800/80 px-3 py-2.5",
-        !player.isAlive && "opacity-55",
+        !player.isAlive && "opacity-55 grayscale",
       )}>
       <Avatar name={player.name} />
       <div className="min-w-0 flex-1">

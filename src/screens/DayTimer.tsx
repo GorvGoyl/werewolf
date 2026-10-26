@@ -101,10 +101,10 @@ export function DayTimer({ minutes, onMinutesChange }: Props) {
     return (
       <div className="mb-5 flex items-center gap-3 rounded-2xl border border-white/5 bg-night-800/80 py-3 pl-4 pr-3">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 text-[15px] font-semibold text-mist-100">
+          <div className="flex items-center gap-2 text-[15px] font-semibold text-mist-100">
             <Icon
               name="timer"
-              className="size-[18px] text-sun-300"
+              className="size-6"
             />
             Discussion timer
           </div>

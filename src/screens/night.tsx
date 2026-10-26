@@ -110,7 +110,7 @@ export function IdentifyStep({
         <Button
           tone={tone}
           disabled={!ready}
-          icon={ready && "check"}
+          icon={ready && ROLE_ICON[role]}
           onClick={() => onConfirm(selected)}>
           {ready && confirmLabel(names)}
           {!ready && count > 1 && `Pick ${count - selected.length} more`}
@@ -138,6 +138,7 @@ export function DeadRoleStep({ state, dispatch, role, opening }: DeadRoleStepPro
           title={name}
           subtitle={`The ${name} is dead.`}
           tone="mist"
+          muted
         />
         <ScriptCard
           lines={[...opening, `${name}, open your eyes.`]}

@@ -23,7 +23,7 @@ export function BabyWolfScreen({ state, dispatch }: ScreenProps) {
       hint={
         <Callout
           tone="sun"
-          icon="moon">
+          icon="wolf">
           Plays with the village. If the {wolves.toLowerCase()} ever pick them, they survive and join the pack the
           next night.
         </Callout>

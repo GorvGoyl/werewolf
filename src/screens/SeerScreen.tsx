@@ -135,7 +135,7 @@ function SeerResult({ state, dispatch }: ScreenProps) {
             )}
             {!isWolf && (
               <IconTile
-                icon="shield"
+                icon="innocent"
                 tone="leaf"
                 size="xl"
               />

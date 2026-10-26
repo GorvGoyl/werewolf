@@ -13,8 +13,8 @@ export function HistorySheet({ state, onClose }: Props) {
       subtitle={
         <span className="flex items-center gap-1.5">
           <Icon
-            name="eyeOff"
-            className="size-4"
+            name="secret"
+            className="size-5"
           />
           Keep this screen to yourself
         </span>

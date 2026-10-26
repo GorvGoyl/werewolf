@@ -73,8 +73,8 @@ export function RolesSheet({ state, dispatch, onClose }: Props) {
       subtitle={
         <span className="flex items-center gap-1.5">
           <Icon
-            name="eyeOff"
-            className="size-4"
+            name="secret"
+            className="size-5"
           />
           Keep this screen to yourself
         </span>
@@ -100,10 +100,10 @@ export function RolesSheet({ state, dispatch, onClose }: Props) {
             {status.map((item) => (
               <li
                 key={item.text}
-                className="flex gap-3 rounded-2xl border border-white/5 bg-night-800/70 px-4 py-3 text-[15px] leading-snug text-mist-200">
+                className="flex items-center gap-3 rounded-2xl border border-white/5 bg-night-800/70 px-3.5 py-3 text-[15px] leading-snug text-mist-200">
                 <Icon
                   name={item.icon}
-                  className="mt-px size-5 text-mist-300"
+                  className="size-9"
                 />
                 <span>{item.text}</span>
               </li>

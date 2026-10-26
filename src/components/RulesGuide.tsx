@@ -3,8 +3,7 @@ import { roleName, rolePlural } from "../game/roles"
 import { cx } from "../lib/cx"
 import type { IconName } from "./icons"
 import { Icon, ROLE_ICON } from "./icons"
-import type { Tone } from "./ui"
-import { IconTile, ROLE_TONE, SectionLabel, Sheet, toneText } from "./ui"
+import { IconTile, ROLE_TONE, SectionLabel, Sheet } from "./ui"
 
 type Team = "wolves" | "village" | "wildcard"
 
@@ -104,19 +103,19 @@ const TEAM_TEXT: Record<Team, string> = {
   wildcard: "text-sun-300",
 }
 
-type Step = { icon: IconName; tone: Tone; text: string }
+type Step = { icon: IconName; text: string }
 
 type Props = { roleNames: RoleNames; onClose: () => void }
 
 export function RulesGuide({ roleNames: rn, onClose }: Props) {
   const wolves = rolePlural("wolf", rn)
   const order: Step[] = [
-    { icon: ROLE_ICON.courtesan, tone: ROLE_TONE.courtesan, text: roleName("courtesan", rn) },
-    { icon: ROLE_ICON.baby_wolf, tone: ROLE_TONE.baby_wolf, text: `${roleName("baby_wolf", rn)} (Night 1 only)` },
-    { icon: ROLE_ICON.wolf, tone: ROLE_TONE.wolf, text: `${roleName("queen_wolf", rn)} & ${wolves}` },
-    { icon: ROLE_ICON.wizard, tone: ROLE_TONE.wizard, text: roleName("wizard", rn) },
-    { icon: ROLE_ICON.seer, tone: ROLE_TONE.seer, text: roleName("seer", rn) },
-    { icon: "sunrise", tone: "sun", text: "Dawn: deaths are announced, then the village votes" },
+    { icon: ROLE_ICON.courtesan, text: roleName("courtesan", rn) },
+    { icon: ROLE_ICON.baby_wolf, text: `${roleName("baby_wolf", rn)} (Night 1 only)` },
+    { icon: ROLE_ICON.wolf, text: `${roleName("queen_wolf", rn)} & ${wolves}` },
+    { icon: ROLE_ICON.wizard, text: roleName("wizard", rn) },
+    { icon: ROLE_ICON.seer, text: roleName("seer", rn) },
+    { icon: "sunrise", text: "Dawn: deaths are announced, then the village votes" },
   ]
 
   return (
@@ -128,7 +127,7 @@ export function RulesGuide({ roleNames: rn, onClose }: Props) {
         <div className="text-[12px] font-bold uppercase tracking-[0.16em] text-mist-400">Who wins</div>
         <div className="flex items-center gap-3 text-[15px] leading-snug text-leaf-400">
           <IconTile
-            icon="person"
+            icon="villager"
             tone="leaf"
             size="sm"
           />
@@ -149,11 +148,11 @@ export function RulesGuide({ roleNames: rn, onClose }: Props) {
         {order.map((step, i) => (
           <li
             key={step.text}
-            className="flex min-h-11 items-center gap-3 px-2 py-1.5 text-[15px] leading-snug text-mist-200">
+            className="flex min-h-12 items-center gap-3 px-2 py-1.5 text-[15px] leading-snug text-mist-200">
             <span className="w-3 shrink-0 text-right text-[13px] font-semibold tabular-nums text-mist-500">{i + 1}</span>
             <Icon
               name={step.icon}
-              className={cx("size-5", toneText(step.tone))}
+              className="size-9"
             />
             <span>{step.text}</span>
           </li>

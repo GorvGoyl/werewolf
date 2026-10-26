@@ -2,18 +2,7 @@ import { useState } from "react"
 import type { Player } from "../game/types"
 import { isWolf, roleName } from "../game/roles"
 import { alivePlayers, eliminatedToday, playerName } from "../game/selectors"
-import {
-  ActionBar,
-  Avatar,
-  Button,
-  IconTile,
-  Instruction,
-  Screen,
-  ScreenTitle,
-  ScriptCard,
-  playerTone,
-  toneText,
-} from "../components/ui"
+import { ActionBar, Avatar, Button, IconTile, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
 import { Icon, ROLE_ICON, playerIcon } from "../components/icons"
 import { asList, cx } from "../lib/cx"
@@ -125,7 +114,7 @@ function DayResult({ state, dispatch, player }: DayResultProps) {
             )}
             {!wolf && (
               <IconTile
-                icon="shield"
+                icon="innocent"
                 tone="leaf"
                 size="xl"
               />
@@ -138,7 +127,7 @@ function DayResult({ state, dispatch, player }: DayResultProps) {
           <div className="mt-2 flex items-center gap-1.5 text-[15px] text-mist-300">
             <Icon
               name={playerIcon(player, state.babyWolfPlayerId)}
-              className={cx("size-[18px]", toneText(playerTone(player)))}
+              className="size-7"
             />
             Card: {roleName(player.role, state.roleNames)}
           </div>

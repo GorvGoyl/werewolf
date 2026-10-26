@@ -4,7 +4,7 @@ import { haptic } from "../lib/haptics"
 import type { IconName } from "./icons"
 import { Icon, playerIcon } from "./icons"
 import type { Tone } from "./ui"
-import { Avatar, playerTone, toneText } from "./ui"
+import { Avatar } from "./ui"
 
 const SELECTED: Record<Tone, string> = {
   moon: "border-moon-400 bg-moon-500/20 ring-2 ring-moon-400/40",
@@ -33,12 +33,11 @@ type Props = {
   babyWolfPlayerId?: string | null
 }
 
-type Badge = { icon: IconName; tone: Tone }
-
-function badgeFor(player: Player, babyWolfPlayerId: string | null | undefined, showRoles: boolean): Badge | null {
+// Villagers get no badge, so the special roles stand out
+function badgeFor(player: Player, babyWolfPlayerId: string | null | undefined, showRoles: boolean): IconName | null {
   if (!showRoles) return null
   if (!player.role || player.role === "villager") return null
-  return { icon: playerIcon(player, babyWolfPlayerId ?? null), tone: playerTone(player) }
+  return playerIcon(player, babyWolfPlayerId ?? null)
 }
 
 function tileClasses(selected: boolean, disabled: boolean, tone: Tone): string {
@@ -81,7 +80,7 @@ type TileProps = {
   selected: boolean
   disabled: boolean
   note?: string
-  badge: Badge | null
+  badge: IconName | null
   tone: Tone
   onSelect: (id: string) => void
 }
@@ -120,14 +119,14 @@ function PlayerTile({ player, selected, disabled, note, badge, tone, onSelect }:
           aria-label="dead">
           <Icon
             name="skull"
-            className="size-5"
+            className="size-7"
           />
         </span>
       )}
       {badge && player.isAlive && !selected && (
         <Icon
-          name={badge.icon}
-          className={cx("size-5", toneText(badge.tone), disabled && "opacity-60")}
+          name={badge}
+          className={cx("size-8", disabled && "opacity-60")}
         />
       )}
       {selected && (

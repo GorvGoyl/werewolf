@@ -52,7 +52,7 @@ function Key({ children }: { children: ReactNode }) {
 
 const BENEFITS: Array<{ icon: IconName; text: string }> = [
   { icon: "phone", text: "Opens full screen, like any app" },
-  { icon: "wifiOff", text: "Works without internet once installed" },
+  { icon: "offline", text: "Works without internet once installed" },
   { icon: "users", text: "Keeps the same saved names and game" },
 ]
 
@@ -85,7 +85,7 @@ export function InstallSheet({ onClose, onInstall }: SheetProps) {
         <div className="flex items-center gap-2.5 rounded-2xl border border-leaf-500/30 bg-leaf-500/10 px-4 py-3.5 text-[16px] font-semibold text-leaf-400">
           <Icon
             name="checkCircle"
-            className="size-5"
+            className="size-6"
           />
           Installed. Open it from your home screen.
         </div>

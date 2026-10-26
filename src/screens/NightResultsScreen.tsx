@@ -76,13 +76,7 @@ export function NightResultsScreen({ state, dispatch }: ScreenProps) {
           </div>
         )}
 
-        {hasSecrets && (
-          <SectionLabel
-            icon="eyeOff"
-            tone="mist">
-            Only you know
-          </SectionLabel>
-        )}
+        {hasSecrets && <SectionLabel icon="secret">Only you know</SectionLabel>}
         {protectedGuest && (
           <Callout
             tone="moon"

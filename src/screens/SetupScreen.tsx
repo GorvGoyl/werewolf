@@ -158,7 +158,7 @@ export function SetupScreen({ state, dispatch, onInstall }: Props) {
       <ActionBar>
         <Button
           disabled={count < MIN_PLAYERS}
-          icon={count >= MIN_PLAYERS && "mask"}
+          icon={count >= MIN_PLAYERS && "cards"}
           onClick={() => dispatch({ type: "START_ROLE_CONFIG" })}>
           {nextLabel(count)}
         </Button>

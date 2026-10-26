@@ -14,9 +14,9 @@ const STEP_ICON: Record<NightStep, IconName> = {
 }
 
 const GLOW = {
-  moon: "border-moon-400 bg-moon-500/30 text-white shadow-[0_0_14px_rgba(139,124,246,0.55)]",
-  blood: "border-blood-400 bg-blood-500/30 text-white shadow-[0_0_14px_rgba(244,63,94,0.5)]",
-  sun: "border-sun-400 bg-sun-400/25 text-white shadow-[0_0_14px_rgba(251,191,36,0.45)]",
+  moon: "border-moon-400 bg-moon-500/30 shadow-[0_0_14px_rgba(139,124,246,0.55)]",
+  blood: "border-blood-400 bg-blood-500/30 shadow-[0_0_14px_rgba(244,63,94,0.5)]",
+  sun: "border-sun-400 bg-sun-400/25 shadow-[0_0_14px_rgba(251,191,36,0.45)]",
 }
 
 // The step being played glows in its role's color
@@ -45,7 +45,7 @@ type Item = { key: string; icon: IconName; label: string; glow: string }
 
 type Props = { state: GameState }
 
-// The night's wake-up order, with the current step highlighted
+// The night's wake-up order: done steps faded, the current one glowing, the rest in grey
 export function NightProgress({ state }: Props) {
   const steps = getNightSteps(state)
   const phase = state.currentPhase.type
@@ -85,14 +85,14 @@ export function NightProgress({ state }: Props) {
             aria-label={item.label}
             aria-current={ariaStep(index === current)}
             className={cx(
-              "flex size-9 shrink-0 items-center justify-center rounded-full border transition-all",
+              "flex size-10 shrink-0 items-center justify-center rounded-full border transition-all",
               index === current && cx("scale-110", item.glow),
-              index < current && "border-moon-500/40 bg-moon-500/10 text-moon-300",
-              index > current && "border-white/10 bg-night-800/60 text-mist-500",
+              index < current && "border-moon-500/40 bg-moon-500/10 opacity-60",
+              index > current && "border-white/10 bg-night-800/60 opacity-40 grayscale",
             )}>
             <Icon
               name={item.icon}
-              className="size-[18px]"
+              className="size-[30px]"
             />
           </span>
         </li>

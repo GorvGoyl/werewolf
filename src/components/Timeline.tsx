@@ -9,12 +9,12 @@ import type { IconName } from "./icons"
 import { Icon, ROLE_ICON, playerIcon } from "./icons"
 import { roleLabel } from "./RoleList"
 import type { Tone } from "./ui"
-import { Avatar, IconTile, ROLE_TONE, playerTone, toneText } from "./ui"
+import { Avatar, IconTile, playerTone, toneText } from "./ui"
 
 type NightChapter = Extract<Chapter, { kind: "night" }>
 type DayChapter = Extract<Chapter, { kind: "day" }>
 
-type Note = { key: string; icon: IconName; tone: Tone; content: ReactNode }
+type Note = { key: string; icon: IconName; content: ReactNode }
 
 const NOW_CARD: Record<"moon" | "sun", string> = {
   moon: "border-moon-500/40 shadow-[0_0_24px_-8px_rgba(139,124,246,0.5)]",
@@ -81,9 +81,7 @@ function NightCard({ state, chapter }: NightCardProps) {
         />
       ))}
       {!chapter.now && deaths.length === 0 && (
-        <NoteLine
-          icon="heart"
-          tone="leaf">
+        <NoteLine icon="heart">
           <span className="font-semibold text-leaf-300">Nobody died</span>
         </NoteLine>
       )}
@@ -92,11 +90,7 @@ function NightCard({ state, chapter }: NightCardProps) {
         <ul className={cx("space-y-2", !chapter.now && "border-t border-white/5 pt-3")}>
           {notes.map((note) => (
             <li key={note.key}>
-              <NoteLine
-                icon={note.icon}
-                tone={note.tone}>
-                {note.content}
-              </NoteLine>
+              <NoteLine icon={note.icon}>{note.content}</NoteLine>
             </li>
           ))}
         </ul>
@@ -122,13 +116,7 @@ function DayCard({ state, chapter }: DayCardProps) {
           event={event}
         />
       ))}
-      {!chapter.now && out.length === 0 && (
-        <NoteLine
-          icon="vote"
-          tone="mist">
-          Nobody was voted out
-        </NoteLine>
-      )}
+      {!chapter.now && out.length === 0 && <NoteLine icon="vote">Nobody was voted out</NoteLine>}
       {chapter.now && <Pending>The village hasn&apos;t voted yet.</Pending>}
     </ChapterCard>
   )
@@ -145,7 +133,6 @@ function nightNotes(state: GameState, chapter: NightChapter): Note[] {
     notes.push({
       key: "courtesan",
       icon: ROLE_ICON.courtesan,
-      tone: ROLE_TONE.courtesan,
       content: (
         <>
           {roleName("courtesan", rn)} invited <Name id={event.courtesanGuest} state={state} />
@@ -159,7 +146,6 @@ function nightNotes(state: GameState, chapter: NightChapter): Note[] {
     notes.push({
       key: "baby",
       icon: ROLE_ICON.baby_wolf,
-      tone: "sun",
       content: (
         <>
           <Name id={baby.id} state={state} /> joined the pack
@@ -175,7 +161,6 @@ function nightNotes(state: GameState, chapter: NightChapter): Note[] {
     notes.push({
       key: "wolves",
       icon: ROLE_ICON.wolf,
-      tone: ROLE_TONE.wolf,
       content: (
         <>
           {rolePlural("wolf", rn)} attacked <Name id={target} state={state} />
@@ -195,7 +180,6 @@ function nightNotes(state: GameState, chapter: NightChapter): Note[] {
     notes.push({
       key: "save",
       icon: "heal",
-      tone: "leaf",
       content: (
         <>
           {roleName("wizard", rn)} saved <Name id={saved} state={state} />
@@ -209,7 +193,6 @@ function nightNotes(state: GameState, chapter: NightChapter): Note[] {
     notes.push({
       key: "kill",
       icon: "poison",
-      tone: "blood",
       content: (
         <>
           {roleName("wizard", rn)} poisoned <Name id={event.wizardKilled} state={state} />
@@ -223,7 +206,6 @@ function nightNotes(state: GameState, chapter: NightChapter): Note[] {
     notes.push({
       key: "seer",
       icon: ROLE_ICON.seer,
-      tone: ROLE_TONE.seer,
       content: (
         <>
           {roleName("seer", rn)} checked <Name id={event.seerChecked} state={state} />:{" "}
@@ -326,7 +308,7 @@ function PersonRow({ state, player, children }: PersonRowProps) {
           <span className={cx("flex items-center gap-1 text-[13px] font-semibold", toneText(tone))}>
             <Icon
               name={playerIcon(player, state.babyWolfPlayerId)}
-              className="size-4"
+              className="size-6"
             />
             {roleLabel(state, player)}
           </span>
@@ -337,15 +319,15 @@ function PersonRow({ state, player, children }: PersonRowProps) {
   )
 }
 
-type NoteLineProps = { icon: IconName; tone: Tone; children: ReactNode }
+type NoteLineProps = { icon: IconName; children: ReactNode }
 
-function NoteLine({ icon, tone, children }: NoteLineProps) {
+function NoteLine({ icon, children }: NoteLineProps) {
   return (
-    <div className="flex gap-3 text-[15px] leading-snug text-mist-300">
+    <div className="flex items-center gap-3 text-[15px] leading-snug text-mist-300">
       <span className="flex w-8 shrink-0 justify-center">
         <Icon
           name={icon}
-          className={cx("mt-px size-[18px]", toneText(tone))}
+          className="size-7"
         />
       </span>
       <span className="min-w-0 flex-1">{children}</span>

@@ -76,7 +76,7 @@ export function GameOverScreen({ state, dispatch, winner }: Props) {
       <ActionBar>
         <Button
           tone={tone}
-          icon="replay"
+          icon="restart"
           onClick={() => dispatch({ type: "NEW_GAME" })}>
           Play again
         </Button>

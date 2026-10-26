@@ -63,7 +63,7 @@ export function RoleConfigScreen({ state, dispatch }: ScreenProps) {
       <Screen>
         <ScreenTitle
           eyebrow={`${playerCount} players`}
-          icon="mask"
+          icon="cards"
           title="Roles in this game"
           subtitle="Match the cards you're dealing."
         />
@@ -218,7 +218,7 @@ function RoleToggle({ role, name, blurb, enabled, onToggle }: RoleToggleProps) {
         enabled && "border-moon-500/50 bg-moon-500/10",
         !enabled && "border-white/5 bg-night-800/60",
       )}>
-      <span className={cx("transition-opacity", !enabled && "opacity-50")}>
+      <span className={cx("transition-[opacity,filter]", !enabled && "opacity-50 grayscale")}>
         <IconTile
           icon={ROLE_ICON[role]}
           tone={tone}

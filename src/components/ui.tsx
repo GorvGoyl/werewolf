@@ -4,7 +4,7 @@ import type { Player, Role } from "../game/types"
 import { cx } from "../lib/cx"
 import { haptic } from "../lib/haptics"
 import type { IconName } from "./icons"
-import { Icon, ROLE_ICON } from "./icons"
+import { Icon, ROLE_ICON, isGlyph } from "./icons"
 
 export type Tone = "moon" | "blood" | "sun" | "leaf" | "mist"
 
@@ -41,11 +41,11 @@ const CALLOUT: Record<Tone, string> = {
 }
 
 const TILE: Record<Tone, string> = {
-  moon: "bg-moon-500/15 text-moon-300 ring-moon-400/25",
-  blood: "bg-blood-500/15 text-blood-400 ring-blood-400/25",
-  sun: "bg-sun-400/15 text-sun-300 ring-sun-400/25",
-  leaf: "bg-leaf-500/15 text-leaf-400 ring-leaf-400/25",
-  mist: "bg-white/5 text-mist-300 ring-white/10",
+  moon: "bg-moon-500/15 ring-moon-400/25",
+  blood: "bg-blood-500/15 ring-blood-400/25",
+  sun: "bg-sun-400/15 ring-sun-400/25",
+  leaf: "bg-leaf-500/15 ring-leaf-400/25",
+  mist: "bg-white/5 ring-white/10",
 }
 
 // Wolves red, the Baby Wolf amber, village roles green, villagers plain
@@ -83,20 +83,25 @@ const TILE_SIZE = {
 }
 
 const TILE_ICON = {
-  sm: "size-5",
-  md: "size-6",
-  lg: "size-8",
-  xl: "size-12",
+  sm: "size-7",
+  md: "size-[34px]",
+  lg: "size-12",
+  xl: "size-[68px]",
 }
 
-type IconTileProps = { icon: IconName; tone?: Tone; size?: keyof typeof TILE_SIZE }
+type IconTileProps = { icon: IconName; tone?: Tone; size?: keyof typeof TILE_SIZE; muted?: boolean }
 
-// An icon on a soft colored square: how the app marks roles, steps and results
-export function IconTile({ icon, tone = "mist", size = "md" }: IconTileProps) {
+// A picture on a soft colored square: how the app marks roles, steps and results. Muted is grey, for the dead.
+export function IconTile({ icon, tone = "mist", size = "md", muted = false }: IconTileProps) {
   return (
     <span
       aria-hidden
-      className={cx("flex shrink-0 items-center justify-center ring-1 ring-inset", TILE[tone], TILE_SIZE[size])}>
+      className={cx(
+        "flex shrink-0 items-center justify-center ring-1 ring-inset",
+        TILE[tone],
+        TILE_SIZE[size],
+        muted && "grayscale",
+      )}>
       <Icon
         name={icon}
         className={TILE_ICON[size]}
@@ -111,9 +116,10 @@ type ScreenTitleProps = {
   title: string
   subtitle?: ReactNode
   tone?: Tone
+  muted?: boolean
 }
 
-export function ScreenTitle({ eyebrow, icon, title, subtitle, tone = "moon" }: ScreenTitleProps) {
+export function ScreenTitle({ eyebrow, icon, title, subtitle, tone = "moon", muted = false }: ScreenTitleProps) {
   return (
     <header className="mb-5">
       <div className="flex items-center gap-3.5">
@@ -121,6 +127,8 @@ export function ScreenTitle({ eyebrow, icon, title, subtitle, tone = "moon" }: S
           <IconTile
             icon={icon}
             tone={tone}
+            size="lg"
+            muted={muted}
           />
         )}
         <div className="min-w-0">
@@ -149,8 +157,8 @@ export function ScriptCard({ lines, after = [], tone = "moon" }: ScriptCardProps
       className={cx("mb-5 rounded-2xl border-l-4 bg-night-800/80 px-4 py-4 shadow-sm", SCRIPT_BORDER[tone])}>
       <div className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-mist-400">
         <Icon
-          name="speaker"
-          className="size-4"
+          name="megaphone"
+          className="size-[18px]"
         />
         Say
       </div>
@@ -187,7 +195,7 @@ export function Instruction({ children, tone = "sun" }: InstructionProps) {
     <p className={cx("mb-3 flex items-center gap-2 text-[16px] font-semibold", TEXT[tone])}>
       <Icon
         name="tap"
-        className="size-5"
+        className="size-6"
       />
       <span>{children}</span>
     </p>
@@ -207,7 +215,7 @@ export function Callout({ tone = "mist", icon, title, children }: CalloutProps) 
       {icon && (
         <Icon
           name={icon}
-          className={cx("mt-px size-5", TEXT[tone])}
+          className="-my-0.5 size-8"
         />
       )}
       <div className="min-w-0 flex-1">
@@ -274,14 +282,29 @@ export function Button({
         buttonClasses(variant, tone, disabled),
         className,
       )}>
-      {icon && (
-        <Icon
-          name={icon}
-          className="size-[22px]"
-        />
-      )}
+      {icon && <ButtonIcon name={icon} />}
       {children}
     </button>
+  )
+}
+
+// A picture sits on a dark disc so it shows on every button color; a plain glyph takes the text color
+function ButtonIcon({ name }: { name: IconName }) {
+  if (isGlyph(name)) {
+    return (
+      <Icon
+        name={name}
+        className="size-[22px]"
+      />
+    )
+  }
+  return (
+    <span className="-my-1 -ml-1.5 flex size-10 shrink-0 items-center justify-center rounded-full bg-night-950/30">
+      <Icon
+        name={name}
+        className="size-7"
+      />
+    </span>
   )
 }
 
@@ -299,7 +322,7 @@ export function TextButton({ icon, onClick, tone = "mist", children }: TextButto
       )}>
       <Icon
         name={icon}
-        className="size-4"
+        className="size-[18px]"
       />
       {children}
     </button>
@@ -334,16 +357,16 @@ export function Avatar({ name, size = "md" }: AvatarProps) {
   )
 }
 
-type SectionLabelProps = { children: ReactNode; icon?: IconName; tone?: Tone; action?: ReactNode }
+type SectionLabelProps = { children: ReactNode; icon?: IconName; action?: ReactNode }
 
-export function SectionLabel({ children, icon, tone = "mist", action }: SectionLabelProps) {
+export function SectionLabel({ children, icon, action }: SectionLabelProps) {
   return (
     <div className="mb-2.5 mt-6 flex min-h-6 items-center justify-between gap-3">
-      <div className="flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.16em] text-mist-400">
+      <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.16em] text-mist-400">
         {icon && (
           <Icon
             name={icon}
-            className={cx("size-4", TEXT[tone])}
+            className="size-[22px]"
           />
         )}
         {children}
@@ -358,10 +381,10 @@ type RoleChipProps = { role: Role; label: string; count?: number }
 // A role and how many cards of it are in play
 export function RoleChip({ role, label, count = 1 }: RoleChipProps) {
   return (
-    <span className="flex h-10 items-center gap-2 rounded-full border border-white/10 bg-night-800/80 pl-3 pr-3.5 text-[14px] font-semibold text-mist-200">
+    <span className="flex h-11 items-center gap-2 rounded-full border border-white/10 bg-night-800/80 pl-1.5 pr-3.5 text-[14px] font-semibold text-mist-200">
       <Icon
         name={ROLE_ICON[role]}
-        className={cx("size-[18px]", TEXT[ROLE_TONE[role]])}
+        className="size-8"
       />
       {label}
       {count > 1 && <span className="text-mist-400">×{count}</span>}
@@ -545,10 +568,10 @@ type StatProps = { value: number; label: string; tone: Tone; icon: IconName }
 export function Stat({ value, label, tone, icon }: StatProps) {
   return (
     <div className="flex flex-1 flex-col items-center">
-      <div className={cx("flex items-center gap-1.5 text-[26px] font-bold tabular-nums", TEXT[tone])}>
+      <div className={cx("flex items-center gap-2 text-[26px] font-bold tabular-nums", TEXT[tone])}>
         <Icon
           name={icon}
-          className="size-5"
+          className="size-7"
         />
         {value}
       </div>
