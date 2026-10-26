@@ -1,7 +1,7 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { App } from "./App"
-import { boot, forwardToHome, saveState } from "./game/storage"
+import { boot, forwardToHome, saveHistory, saveState } from "./game/storage"
 import { registerServiceWorker, startInstallTracking } from "./lib/install"
 import "./index.css"
 
@@ -10,9 +10,10 @@ if (!forwardToHome()) {
   startInstallTracking()
   if (import.meta.env.PROD) registerServiceWorker()
 
-  // Read the saved game (and anything handed over by an old address) before the first render
+  // Read the saved game (and anything handed over by another phone or an old address) before the first render
   const booted = boot()
   saveState(booted.state)
+  saveHistory(booted.history)
 
   const root = document.getElementById("root")
   if (root) {

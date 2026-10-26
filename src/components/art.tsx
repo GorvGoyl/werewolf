@@ -2084,6 +2084,129 @@ export const ART = {
       />
     </>
   ),
+  // Passing the next game to another phone: a code on one screen, the players on the other
+  handOver: () => (
+    <>
+      <rect
+        fill="#334155"
+        stroke="#94a3b8"
+        strokeWidth="1.8"
+        x="2.5"
+        y="10"
+        width="23"
+        height="44"
+        rx="4.5"
+      />
+      <rect
+        fill="#ffffff"
+        x="5.5"
+        y="15.5"
+        width="17"
+        height="33"
+        rx="1.5"
+      />
+      <path
+        fill="#0c0e22"
+        d="M7.5 23.5h6v6h-6Zm7 0h6v6h-6Zm-7 7h6v6h-6Zm8.5 1.5h2v2h-2Zm2.5 2.5h2v2h-2Zm-3 2h2v2h-2ZM18 39h2.5v2.5H18Zm-10.5 1H10v2.5H7.5Zm4 0.5H14V43h-2.5Z"
+      />
+      <path
+        fill="#ffffff"
+        d="M9 25h3v3H9Zm7 0h3v3h-3Zm-7 7h3v3H9Z"
+      />
+      <path
+        fill="#0c0e22"
+        d="M10 26h1v1h-1Zm7 0h1v1h-1Zm-7 7h1v1h-1Z"
+      />
+      <rect
+        fill="#334155"
+        stroke="#94a3b8"
+        strokeWidth="1.8"
+        x="38.5"
+        y="10"
+        width="23"
+        height="44"
+        rx="4.5"
+      />
+      <rect
+        fill="#1e1b4b"
+        x="41.5"
+        y="15.5"
+        width="17"
+        height="33"
+        rx="1.5"
+      />
+      <circle
+        fill="#f87171"
+        cx="45.5"
+        cy="22"
+        r="2.4"
+      />
+      <circle
+        fill="#fbbf24"
+        cx="45.5"
+        cy="29.5"
+        r="2.4"
+      />
+      <circle
+        fill="#4ade80"
+        cx="45.5"
+        cy="37"
+        r="2.4"
+      />
+      <circle
+        fill="#60a5fa"
+        cx="45.5"
+        cy="44.5"
+        r="2.4"
+      />
+      <path
+        fill="none"
+        stroke="#a5b4fc"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        d="M49.5 22h6m-6 7.5h4.5m-4.5 7.5h6m-6 7.5h3.5"
+      />
+      <path
+        fill="#fbbf24"
+        stroke="#0c0e22"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+        d="M22 28.5h9v-6l11 9.5-11 9.5v-6h-9Z"
+      />
+    </>
+  ),
+  // Sending a link through another app
+  send: () => (
+    <>
+      <path
+        fill="none"
+        stroke="#fbbf24"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeDasharray="3.5 4"
+        d="M4 58c5-1 9-4 12.5-8.5"
+      />
+      <path
+        fill="#e0f2fe"
+        d="M4 31.5 59 6 25 38.5Z"
+      />
+      <path
+        fill="#7dd3fc"
+        d="M25 38.5 59 6 41 57Z"
+      />
+      <path
+        fill="#0ea5e9"
+        d="M25 38.5 27.5 54l7-9.5Z"
+      />
+      <path
+        fill="none"
+        stroke="#0369a1"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+        d="M4 31.5 59 6 41 57 25 38.5ZM25 38.5 59 6"
+      />
+    </>
+  ),
   offline: () => (
     <>
       <path

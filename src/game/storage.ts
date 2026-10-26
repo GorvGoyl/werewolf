@@ -215,7 +215,98 @@ export function forwardToHome(): boolean {
   return true
 }
 
-export type Boot = { state: GameState; history: GameState[]; openRules: boolean }
+// Handing the next game to another phone: one link with who's playing, who ran this game, the
+// roles in play and what the cards are called. It all rides after the #, which browsers never
+// send to the server, so the names stay between the two phones.
+//   https://werewolf.gourav.io/#players=Ana,Ben,Cleo&gm=Gourav&roles=2qcws&cards=wolf:Loup&t=3
+export type HandOver = {
+  players: string[]
+  gameMaster: string | null
+  gameConfig: GameConfig
+  roleNames: RoleNames
+  timerMinutes: number
+}
+
+const ROLE_FLAGS: Array<[keyof Omit<GameConfig, "wolfCount">, string]> = [
+  ["hasQueenWolf", "q"],
+  ["hasBabyWolf", "b"],
+  ["hasCourtesan", "c"],
+  ["hasWizard", "w"],
+  ["hasSeer", "s"],
+]
+
+// Names are encoded, so the commas, semicolons and colons between them are unambiguous
+export function handOverLink(state: GameState): string {
+  const config = state.gameConfig
+  const flags = ROLE_FLAGS.filter(([key]) => config[key]).map(([, flag]) => flag)
+  const parts = [`players=${state.players.map((p) => encodeURIComponent(p.name)).join(",")}`]
+  if (state.gameMaster) parts.push(`gm=${encodeURIComponent(state.gameMaster)}`)
+  parts.push(`roles=${config.wolfCount}${flags.join("")}`)
+  const cards = Object.entries(state.roleNames).map(([role, name]) => `${role}:${encodeURIComponent(name)}`)
+  if (cards.length > 0) parts.push(`cards=${cards.join(";")}`)
+  parts.push(`t=${state.timerMinutes}`)
+  return `${HOME_URL}#${parts.join("&")}`
+}
+
+export function readHandOver(hash: string): HandOver | null {
+  if (!hash.startsWith("#players=")) return null
+  const fields = new Map<string, string>()
+  for (const part of hash.slice(1).split("&")) {
+    const at = part.indexOf("=")
+    if (at > 0) fields.set(part.slice(0, at), part.slice(at + 1))
+  }
+  try {
+    const decode = (text: string) => normalizeName(decodeURIComponent(text))
+    const players = (fields.get("players") ?? "").split(",").map(decode).filter(Boolean)
+    const gameMaster = decode(fields.get("gm") ?? "") || null
+    if (players.length === 0 && !gameMaster) return null
+
+    const roles = /^(\d+)([a-z]*)$/.exec(fields.get("roles") ?? "")
+    let gameConfig = DEFAULT_GAME_CONFIG
+    if (roles) {
+      const config: Record<string, unknown> = { wolfCount: Number(roles[1]) }
+      for (const [key, flag] of ROLE_FLAGS) config[key] = roles[2].includes(flag)
+      gameConfig = sanitizeConfig(config)
+    }
+
+    const cards: Record<string, string> = {}
+    for (const entry of (fields.get("cards") ?? "").split(";")) {
+      const at = entry.indexOf(":")
+      if (at > 0) cards[entry.slice(0, at)] = decodeURIComponent(entry.slice(at + 1))
+    }
+
+    const minutes = Number(fields.get("t"))
+    return {
+      players,
+      gameMaster,
+      gameConfig,
+      roleNames: sanitizeRoleNames(cards),
+      timerMinutes: Number.isInteger(minutes) ? Math.min(15, Math.max(1, minutes)) : 3,
+    }
+  } catch {
+    // A broken % escape: not a link this app made
+    return null
+  }
+}
+
+// A fresh game set up like the other phone's. Its game master stays marked, so picking this
+// phone's game master puts them back with the players.
+export function applyHandOver(state: GameState, handOver: HandOver): GameState {
+  let next: GameState = {
+    ...createInitialState(),
+    gameConfig: handOver.gameConfig,
+    timerMinutes: handOver.timerMinutes,
+    // The other phone's card names, unless it uses the standard ones
+    roleNames: Object.keys(handOver.roleNames).length > 0 ? handOver.roleNames : state.roleNames,
+    savedNames: state.savedNames,
+    showRoleBadges: state.showRoleBadges,
+  }
+  next = gameReducer(next, { type: "ADD_PLAYERS", names: handOver.players })
+  if (handOver.gameMaster) next = gameReducer(next, { type: "SET_GAME_MASTER", name: handOver.gameMaster })
+  return next
+}
+
+export type Boot = { state: GameState; history: GameState[]; openRules: boolean; handedOver: boolean }
 
 // Runs once, before React renders
 export function boot(): Boot {
@@ -230,9 +321,15 @@ export function boot(): Boot {
     state = applyImport(state, payload, saved === null)
     history = []
   }
+  const handOver = readHandOver(hash)
+  if (handOver) {
+    // Undo brings back whatever this phone had going
+    if (saved) history = [...history, saved].slice(-MAX_HISTORY)
+    state = applyHandOver(state, handOver)
+  }
   if (hash === "#rules") openRules = true
-  if (payload || hash === "#rules") {
+  if (payload || handOver || hash === "#rules") {
     window.history.replaceState(null, "", window.location.pathname + window.location.search)
   }
-  return { state, history, openRules }
+  return { state, history, openRules, handedOver: handOver !== null }
 }

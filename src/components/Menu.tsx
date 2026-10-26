@@ -5,6 +5,7 @@ import { BottomSheet, Button, IconTile } from "./ui"
 type Props = {
   inGame: boolean
   installed: boolean
+  canHandOver: boolean
   onClose: () => void
   onOpenRules: () => void
   onOpenRoleNames: () => void
@@ -12,6 +13,7 @@ type Props = {
   onOpenHistory: () => void
   onInstall: () => void
   onNewGame: () => void
+  onHandOver: () => void
   onCopyState: () => void
 }
 
@@ -19,6 +21,7 @@ type Props = {
 export function Menu({
   inGame,
   installed,
+  canHandOver,
   onClose,
   onOpenRules,
   onOpenRoleNames,
@@ -26,6 +29,7 @@ export function Menu({
   onOpenHistory,
   onInstall,
   onNewGame,
+  onHandOver,
   onCopyState,
 }: Props) {
   return (
@@ -72,6 +76,14 @@ export function Menu({
         onClick={onNewGame}>
         New game
       </MenuItem>
+      {canHandOver && (
+        <MenuItem
+          icon="handOver"
+          hint="Someone else runs the next game on their phone"
+          onClick={onHandOver}>
+          Hand over to another phone
+        </MenuItem>
+      )}
       <MenuItem
         icon="copy"
         hint="For bug reports"

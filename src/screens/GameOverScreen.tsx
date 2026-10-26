@@ -19,9 +19,9 @@ function winnerTone(winner: Winner): Tone {
   return "blood"
 }
 
-type Props = Pick<ScreenProps, "state"> & { winner: Winner; onPlayAgain: () => void }
+type Props = Pick<ScreenProps, "state"> & { winner: Winner; onPlayAgain: () => void; onHandOver: () => void }
 
-export function GameOverScreen({ state, winner, onPlayAgain }: Props) {
+export function GameOverScreen({ state, winner, onPlayAgain, onHandOver }: Props) {
   const text = winnerText(winner, state.roleNames)
   const nights = state.nightEvents.length
   const village = winner === "village"
@@ -79,6 +79,12 @@ export function GameOverScreen({ state, winner, onPlayAgain }: Props) {
           icon="restart"
           onClick={onPlayAgain}>
           Play again
+        </Button>
+        <Button
+          variant="ghost"
+          icon="handOver"
+          onClick={onHandOver}>
+          Next game on another phone
         </Button>
       </ActionBar>
     </>

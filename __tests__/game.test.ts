@@ -9,7 +9,7 @@ import {
 import { getPlayersInDanger, resolveDeaths } from "../src/game/deaths"
 import { getLineup, isConfigValid, isWolf, pluralize, rolePlural } from "../src/game/roles"
 import { getTimeline, getWolvesStep } from "../src/game/selectors"
-import { applyImport, readImportFromHash, sanitizeState } from "../src/game/storage"
+import { applyHandOver, applyImport, handOverLink, readHandOver, readImportFromHash, sanitizeState } from "../src/game/storage"
 import { detectPlatform } from "../src/lib/install"
 import type { GameAction, GameConfig, GameState, Player } from "../src/game/types"
 import { DEFAULT_GAME_CONFIG } from "../src/game/types"
@@ -982,5 +982,78 @@ describe("Game master", () => {
     const { gameMaster: _, ...older } = state
     expect(sanitizeState(older)!.gameMaster).toBeNull()
     expect(sanitizeState({ ...state, gameMaster: 42 })!.gameMaster).toBeNull()
+  })
+})
+
+// ===========================
+// 17. HAND-OVER TO ANOTHER PHONE
+// ===========================
+describe("Hand-over", () => {
+  function names(state: GameState): string[] {
+    return state.players.map((p) => p.name)
+  }
+
+  // What the other phone ends up with after opening this phone's link
+  function handedOver(from: GameState, to: GameState = createInitialState()): GameState {
+    const link = handOverLink(from)
+    return applyHandOver(to, readHandOver(link.slice(link.indexOf("#")))!)
+  }
+
+  it("makes a short, readable link", () => {
+    const state = run(setupGame(["Ana", "Ben"]), { type: "SET_GAME_MASTER", name: "Gourav" })
+    expect(handOverLink(state)).toBe("https://werewolf.gourav.io/#players=Ana,Ben&gm=Gourav&roles=2qcws&t=3")
+  })
+
+  it("sends the players, the game master, the roles, the card names and the timer", () => {
+    const config: GameConfig = { ...DEFAULT_GAME_CONFIG, wolfCount: 3, hasBabyWolf: true, hasWizard: false }
+    const from: GameState = {
+      ...run(setupGame(["Ana", "Ben", "Cleo", "Dev", "Eli"]), { type: "SET_GAME_MASTER", name: "Gourav" }),
+      gameConfig: config,
+      roleNames: { wolf: "Loup", seer: "Oracle" },
+      timerMinutes: 5,
+    }
+    const to = handedOver(from)
+    expect(to.currentPhase).toEqual({ type: "setup" })
+    expect(names(to)).toEqual(["Ana", "Ben", "Cleo", "Dev", "Eli"])
+    expect(to.gameMaster).toBe("Gourav")
+    expect(to.gameConfig).toEqual(config)
+    expect(to.roleNames).toEqual({ wolf: "Loup", seer: "Oracle" })
+    expect(to.timerMinutes).toBe(5)
+  })
+
+  it("the new game master picks themselves and the last one plays", () => {
+    const from = run(setupGame(["Ana", "Ben", "Gus"]), { type: "SET_GAME_MASTER", name: "Gourav" })
+    const to = run(handedOver(from), { type: "SET_GAME_MASTER", name: "Gus" })
+    expect(to.gameMaster).toBe("Gus")
+    expect(names(to)).toEqual(["Ana", "Ben", "Gourav"])
+  })
+
+  it("keeps unusual names intact", () => {
+    const odd = ["Zoë", "李雷", "สมชาย", "Ana B", "R&D", "50% Sam", "Mo#1", "Lou+1", "Al=1", "Jo:Jo"]
+    expect(names(handedOver(setupGame(odd)))).toEqual(odd)
+  })
+
+  it("replaces a game in progress and remembers this phone's names", () => {
+    const to = handedOver(setupGame(["Zed", "Yan"]), buildGameWithRoles())
+    expect(to.currentPhase).toEqual({ type: "setup" })
+    expect(names(to)).toEqual(["Zed", "Yan"])
+    for (const name of ["Ali", "Maud", "Zed"]) expect(to.savedNames).toContain(name)
+  })
+
+  it("keeps this phone's card names when the other one uses the standard ones", () => {
+    const here = run(createInitialState(), { type: "SET_ROLE_NAMES", roleNames: { seer: "Oracle" } })
+    expect(handedOver(setupGame(["Zed"]), here).roleNames).toEqual({ seer: "Oracle" })
+  })
+
+  it("ignores links it didn't make and repairs odd values", () => {
+    expect(readHandOver("#players=")).toBeNull()
+    expect(readHandOver("#players=%E0%A4")).toBeNull()
+    expect(readHandOver("#rules")).toBeNull()
+    expect(readHandOver("#players=Ana,,Ben&roles=zz&t=99")).toMatchObject({
+      players: ["Ana", "Ben"],
+      gameMaster: null,
+      gameConfig: DEFAULT_GAME_CONFIG,
+      timerMinutes: 15,
+    })
   })
 })

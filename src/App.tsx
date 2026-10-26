@@ -7,6 +7,7 @@ import { MAX_HISTORY, saveHistory, saveState } from "./game/storage"
 import { Header } from "./components/Header"
 import { Menu, NewGameSheet } from "./components/Menu"
 import { GameMasterSheet } from "./components/GameMasterSheet"
+import { HandOverSheet } from "./components/HandOverSheet"
 import { RolesSheet } from "./components/RolesSheet"
 import { HistorySheet } from "./components/HistorySheet"
 import { RulesGuide } from "./components/RulesGuide"
@@ -26,7 +27,7 @@ import { GameOverScreen } from "./screens/GameOverScreen"
 import { useWakeLock } from "./lib/useWakeLock"
 import { cx } from "./lib/cx"
 
-type Overlay = "menu" | "new_game" | "game_master" | "roles" | "history" | "rules" | "names" | "install"
+type Overlay = "menu" | "new_game" | "game_master" | "hand_over" | "roles" | "history" | "rules" | "names" | "install"
 
 // Settings changes aren't steps of the game, so undo skips them
 const NOT_UNDOABLE: Array<GameAction["type"]> = [
@@ -119,12 +120,18 @@ export function App({ boot }: Props) {
       window.history.pushState({ overlay: "rules" }, "")
       setOverlay("rules")
     }
+    // Players just came from another phone, and whoever runs the game here gets no card
+    if (boot.handedOver) {
+      window.history.pushState({ overlay: "game_master" }, "")
+      setOverlay("game_master")
+      flash(`${boot.state.players.length + (boot.state.gameMaster ? 1 : 0)} names came from the other phone`)
+    }
     function onPopState(event: PopStateEvent) {
       setOverlay(event.state?.overlay ?? null)
     }
     window.addEventListener("popstate", onPopState)
     return () => window.removeEventListener("popstate", onPopState)
-  }, [boot.openRules])
+  }, [boot])
 
   // Each new game starts by asking who runs it
   function newGame() {
@@ -169,6 +176,25 @@ export function App({ boot }: Props) {
     void promptInstall()
   }
 
+  // The phone's own share menu where there is one, otherwise the link is copied
+  async function shareLink(link: string) {
+    if ("share" in navigator) {
+      try {
+        await navigator.share({ title: "Werewolf GM", text: "Players for the next Werewolf game", url: link })
+        return
+      } catch (error) {
+        // Closing the share menu isn't a failure
+        if (error instanceof DOMException && error.name === "AbortError") return
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(link)
+      flash("Link copied")
+    } catch {
+      flash("Couldn't share the link")
+    }
+  }
+
   function flash(text: string) {
     window.clearTimeout(toastTimerRef.current)
     setToast(text)
@@ -202,12 +228,14 @@ export function App({ boot }: Props) {
         onInstall={install}
         onPickGameMaster={() => openOverlay("game_master")}
         onPlayAgain={newGame}
+        onHandOver={() => openOverlay("hand_over")}
       />
 
       {overlay === "menu" && (
         <Menu
           inGame={state.currentPhase.type !== "setup" && state.currentPhase.type !== "role_config"}
           installed={installed}
+          canHandOver={state.players.length > 0 || state.gameMaster !== null}
           onClose={closeOverlay}
           onOpenRules={() => openOverlay("rules")}
           onOpenRoleNames={() => openOverlay("names")}
@@ -215,6 +243,7 @@ export function App({ boot }: Props) {
           onOpenHistory={() => openOverlay("history")}
           onInstall={installFromMenu}
           onNewGame={startNewGame}
+          onHandOver={() => openOverlay("hand_over")}
           onCopyState={() => {
             closeOverlay()
             void copyState()
@@ -231,6 +260,13 @@ export function App({ boot }: Props) {
         <GameMasterSheet
           state={state}
           onPick={pickGameMaster}
+          onClose={closeOverlay}
+        />
+      )}
+      {overlay === "hand_over" && (
+        <HandOverSheet
+          state={state}
+          onShare={(link) => void shareLink(link)}
           onClose={closeOverlay}
         />
       )}
@@ -289,9 +325,10 @@ type CurrentScreenProps = {
   onInstall: () => void
   onPickGameMaster: () => void
   onPlayAgain: () => void
+  onHandOver: () => void
 }
 
-function CurrentScreen({ state, dispatch, onInstall, onPickGameMaster, onPlayAgain }: CurrentScreenProps) {
+function CurrentScreen({ state, dispatch, onInstall, onPickGameMaster, onPlayAgain, onHandOver }: CurrentScreenProps) {
   const phase = state.currentPhase
   if (phase.type === "setup") {
     return (
@@ -311,6 +348,15 @@ function CurrentScreen({ state, dispatch, onInstall, onPickGameMaster, onPlayAga
   if (phase.type === "night_seer") return <SeerScreen state={state} dispatch={dispatch} />
   if (phase.type === "night_results") return <NightResultsScreen state={state} dispatch={dispatch} />
   if (phase.type === "day_vote") return <DayVoteScreen state={state} dispatch={dispatch} />
-  if (phase.type === "game_over") return <GameOverScreen state={state} winner={phase.winner} onPlayAgain={onPlayAgain} />
+  if (phase.type === "game_over") {
+    return (
+      <GameOverScreen
+        state={state}
+        winner={phase.winner}
+        onPlayAgain={onPlayAgain}
+        onHandOver={onHandOver}
+      />
+    )
+  }
   return null
 }
