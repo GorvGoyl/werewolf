@@ -929,3 +929,58 @@ describe("Timeline", () => {
     expect(summary(state)).toEqual([["night", 1, false]])
   })
 })
+
+// ===========================
+// 16. GAME MASTER
+// ===========================
+describe("Game master", () => {
+  function names(state: GameState): string[] {
+    return state.players.map((p) => p.name)
+  }
+
+  it("a game master from the players leaves them and gets no card", () => {
+    const state = run(setupGame(["Ana", "Ben", "Gus"]), { type: "SET_GAME_MASTER", name: "gus" })
+    expect(state.gameMaster).toBe("Gus")
+    expect(names(state)).toEqual(["Ana", "Ben"])
+  })
+
+  it("a new game master swaps in whoever ran the last game as a player", () => {
+    let state = run(setupGame(["Ana", "Ben", "Gus"]), { type: "SET_GAME_MASTER", name: "Gourav" })
+    expect(names(state)).toEqual(["Ana", "Ben", "Gus"])
+    expect(state.savedNames[0]).toBe("Gourav")
+    state = run(state, { type: "SET_GAME_MASTER", name: "Gus" })
+    expect(state.gameMaster).toBe("Gus")
+    expect(names(state)).toEqual(["Ana", "Ben", "Gourav"])
+  })
+
+  it("picking the same game master again changes nothing", () => {
+    const state = run(setupGame(["Ana", "Ben"]), { type: "SET_GAME_MASTER", name: "Gourav" })
+    expect(run(state, { type: "SET_GAME_MASTER", name: "gourav" })).toBe(state)
+    expect(run(state, { type: "SET_GAME_MASTER", name: "  " })).toBe(state)
+  })
+
+  it("a game master who joins the players stops being the game master", () => {
+    let state = run(setupGame(["Ana", "Ben"]), { type: "SET_GAME_MASTER", name: "Gourav" })
+    state = run(state, { type: "ADD_PLAYERS", names: ["gourav"] })
+    expect(state.gameMaster).toBeNull()
+    expect(names(state)).toEqual(["Ana", "Ben", "Gourav"])
+  })
+
+  it("stays for the next game, and only changes before roles are dealt", () => {
+    let state = run(setupGame(), { type: "SET_GAME_MASTER", name: "Gourav" }, { type: "START_ROLE_CONFIG" })
+    expect(run(state, { type: "SET_GAME_MASTER", name: "Ali" })).toBe(state)
+    state = run(state, { type: "SET_GAME_CONFIG", config: DEFAULT_GAME_CONFIG })
+    expect(run(state, { type: "SET_GAME_MASTER", name: "Ali" })).toBe(state)
+    state = run(state, { type: "NEW_GAME" })
+    expect(state.gameMaster).toBe("Gourav")
+    expect(names(state)).toEqual(NAMES.map((n) => n.charAt(0).toUpperCase() + n.slice(1)))
+  })
+
+  it("is restored from storage, and missing in older saves", () => {
+    const state = run(setupGame(["Ana", "Ben"]), { type: "SET_GAME_MASTER", name: "Gourav" })
+    expect(sanitizeState(JSON.parse(JSON.stringify(state)))!.gameMaster).toBe("Gourav")
+    const { gameMaster: _, ...older } = state
+    expect(sanitizeState(older)!.gameMaster).toBeNull()
+    expect(sanitizeState({ ...state, gameMaster: 42 })!.gameMaster).toBeNull()
+  })
+})

@@ -57,6 +57,11 @@ function sanitizeRoleNames(value: unknown): RoleNames {
   return names
 }
 
+function sanitizeGameMaster(value: unknown): string | null {
+  if (typeof value !== "string") return null
+  return normalizeName(value) || null
+}
+
 function sanitizeNames(value: unknown): string[] {
   if (!Array.isArray(value)) return []
   return value
@@ -79,6 +84,7 @@ export function sanitizeState(value: unknown): GameState | null {
     roleNames: sanitizeRoleNames(value.roleNames),
     showRoleBadges: value.showRoleBadges !== false,
     gameConfig: sanitizeConfig(value.gameConfig),
+    gameMaster: sanitizeGameMaster(value.gameMaster),
   }
 
   const phase = isRecord(value.currentPhase) ? value.currentPhase : null

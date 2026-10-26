@@ -67,6 +67,9 @@ export type GameState = {
   gameConfig: GameConfig
   babyWolfPlayerId: string | null
   babyWolfTransformNight: number | null
+  // Who runs the game on this phone. They get no card, so they're never one of the players.
+  // A new game keeps them until someone else takes over.
+  gameMaster: string | null
   // Settings below survive new games and undo
   savedNames: string[] // every name ever added, newest first
   timerMinutes: number
@@ -79,6 +82,7 @@ export type GameAction =
   | { type: "REMOVE_PLAYER"; id: string }
   | { type: "REMOVE_ALL_PLAYERS" }
   | { type: "FORGET_SAVED_NAME"; name: string }
+  | { type: "SET_GAME_MASTER"; name: string }
   | { type: "START_ROLE_CONFIG" }
   | { type: "BACK_TO_SETUP" }
   | { type: "SET_GAME_CONFIG"; config: GameConfig }

@@ -22,6 +22,7 @@ export function createInitialState(): GameState {
     gameConfig: DEFAULT_GAME_CONFIG,
     babyWolfPlayerId: null,
     babyWolfTransformNight: null,
+    gameMaster: null,
     savedNames: [],
     timerMinutes: 3,
     roleNames: {},
@@ -172,6 +173,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         added.push({ id: makePlayerId(), name, role: null, isAlive: true })
       }
       if (added.length === 0) return state
+      // A game master who joins the players isn't running this game any more
+      const master = state.gameMaster
+      const masterPlays = master !== null && added.some((p) => sameName(p.name, master))
       return {
         ...state,
         players: [...state.players, ...added],
@@ -179,6 +183,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           state.savedNames,
           added.map((p) => p.name),
         ),
+        gameMaster: masterPlays ? null : master,
       }
     }
 
@@ -194,6 +199,24 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case "FORGET_SAVED_NAME": {
       return { ...state, savedNames: state.savedNames.filter((n) => !sameName(n, action.name)) }
+    }
+
+    case "SET_GAME_MASTER": {
+      if (phase !== "setup") return state
+      const name = normalizeName(action.name)
+      const previous = state.gameMaster
+      if (!name || (previous !== null && sameName(previous, name))) return state
+      // The new game master leaves the players, and whoever ran the last game plays instead
+      const players = state.players.filter((p) => !sameName(p.name, name))
+      if (previous !== null && !players.some((p) => sameName(p.name, previous))) {
+        players.push({ id: makePlayerId(), name: previous, role: null, isAlive: true })
+      }
+      return {
+        ...state,
+        players,
+        gameMaster: name,
+        savedNames: rememberNames(state.savedNames, [name]),
+      }
     }
 
     case "START_ROLE_CONFIG": {
@@ -342,10 +365,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case "NEW_GAME": {
-      // Same players with fresh roles; the role setup and settings stay
+      // Same players with fresh roles; the game master, the role setup and settings stay
       return {
         ...createInitialState(),
         players: state.players.map((p) => ({ ...p, role: null, isAlive: true })),
+        gameMaster: state.gameMaster,
         gameConfig: state.gameConfig,
         savedNames: state.savedNames,
         timerMinutes: state.timerMinutes,

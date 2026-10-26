@@ -774,6 +774,113 @@ export const ART = {
       />
     </>
   ),
+  // Whoever runs the game: a host in a top hat with the night's moon on it
+  gameMaster: () => (
+    <>
+      <path
+        fill="#4338ca"
+        d="M7 64c0-9.5 6.8-15.6 15.4-17.2 2.2 2.6 5.6 4 9.6 4s7.4-1.4 9.6-4C50.2 48.4 57 54.5 57 64Z"
+      />
+      <path
+        fill="#3730a3"
+        d="M22.4 46.8 32 64h-7.5l-5.2-16.4c1-.3 2-.6 3.1-.8Zm19.2 0L32 64h7.5l5.2-16.4c-1-.3-2-.6-3.1-.8Z"
+      />
+      <path
+        fill="#e3a57a"
+        d="M27 40h10v7.4c-1.4 1.7-3.2 2.6-5 2.6s-3.6-.9-5-2.6Z"
+      />
+      <path
+        fill="#f8fafc"
+        d="M24.4 47.3c2.2 1.9 4.8 2.9 7.6 2.9s5.4-1 7.6-2.9L32 61Z"
+      />
+      <path
+        fill="#ef4444"
+        d="M32 51.2 25.6 47.6v7.2Zm0 0 6.4-3.6v7.2Z"
+      />
+      <circle
+        fill="#b91c1c"
+        cx="32"
+        cy="51.2"
+        r="2"
+      />
+      <circle
+        fill="#f2c094"
+        cx="32"
+        cy="35"
+        r="10.5"
+      />
+      <path
+        fill="#3f2a1d"
+        d="M21.6 35.5c-.5-3.2.3-6.2 2-8.5h16.8c1.7 2.3 2.5 5.3 2 8.5-1-2.7-2.6-4.3-4.6-4.8H26.2c-2 .5-3.6 2.1-4.6 4.8Z"
+      />
+      <path
+        fill="#7c3aed"
+        d="M23 26.5 21.8 7.4c-.1-1.3.9-2.4 2.2-2.4h16c1.3 0 2.3 1.1 2.2 2.4L41 26.5Z"
+      />
+      <path
+        fill="#8b5cf6"
+        d="M24 5h4.5l-1 21.5H23L21.8 7.4c-.1-1.3.9-2.4 2.2-2.4Z"
+      />
+      <path
+        fill="#fbbf24"
+        d="M22.5 19h19l-.3 4.6H22.8Z"
+      />
+      <ellipse
+        fill="#5b21b6"
+        cx="32"
+        cy="26.5"
+        rx="16"
+        ry="3.6"
+      />
+      <circle
+        fill="#fde68a"
+        cx="31.2"
+        cy="12.4"
+        r="4.2"
+      />
+      <circle
+        fill="#7c3aed"
+        cx="33.3"
+        cy="11"
+        r="3.6"
+      />
+      <circle
+        fill="#3b2416"
+        cx="27.8"
+        cy="35.5"
+        r="1.4"
+      />
+      <circle
+        fill="#3b2416"
+        cx="36.2"
+        cy="35.5"
+        r="1.4"
+      />
+      <ellipse
+        fill="#f87171"
+        fillOpacity=".4"
+        cx="25"
+        cy="39.4"
+        rx="2.3"
+        ry="1.4"
+      />
+      <ellipse
+        fill="#f87171"
+        fillOpacity=".4"
+        cx="39"
+        cy="39.4"
+        rx="2.3"
+        ry="1.4"
+      />
+      <path
+        fill="none"
+        stroke="#8b3a1e"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        d="M28.5 40.5c2 1.8 5 1.8 7 0"
+      />
+    </>
+  ),
   cards: () => (
     <>
       <g transform="rotate(-15 21 36)">

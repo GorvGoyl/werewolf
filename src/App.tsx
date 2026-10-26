@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react"
 import type { GameAction, GameState } from "./game/types"
-import { gameReducer, isNightStep, keepSettings } from "./game/reducer"
+import { gameReducer, isNightStep, keepSettings, sameName } from "./game/reducer"
 import { eliminatedToday, isGameRunning } from "./game/selectors"
 import type { Boot } from "./game/storage"
 import { MAX_HISTORY, saveHistory, saveState } from "./game/storage"
 import { Header } from "./components/Header"
 import { Menu, NewGameSheet } from "./components/Menu"
+import { GameMasterSheet } from "./components/GameMasterSheet"
 import { RolesSheet } from "./components/RolesSheet"
 import { HistorySheet } from "./components/HistorySheet"
 import { RulesGuide } from "./components/RulesGuide"
@@ -25,7 +26,7 @@ import { GameOverScreen } from "./screens/GameOverScreen"
 import { useWakeLock } from "./lib/useWakeLock"
 import { cx } from "./lib/cx"
 
-type Overlay = "menu" | "new_game" | "roles" | "history" | "rules" | "names" | "install"
+type Overlay = "menu" | "new_game" | "game_master" | "roles" | "history" | "rules" | "names" | "install"
 
 // Settings changes aren't steps of the game, so undo skips them
 const NOT_UNDOABLE: Array<GameAction["type"]> = [
@@ -60,6 +61,7 @@ export function App({ boot }: Props) {
   const [historyLength, setHistoryLength] = useState(boot.history.length)
   const [overlay, setOverlay] = useState<Overlay | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const toastTimerRef = useRef<number | undefined>(undefined)
   const { installed, canPrompt } = useInstallState()
 
   useWakeLock(isGameRunning(state))
@@ -124,14 +126,31 @@ export function App({ boot }: Props) {
     return () => window.removeEventListener("popstate", onPopState)
   }, [boot.openRules])
 
+  // Each new game starts by asking who runs it
+  function newGame() {
+    dispatch({ type: "NEW_GAME" })
+    openOverlay("game_master")
+  }
+
   // A game in progress is only thrown away after asking
   function startNewGame() {
     if (isGameRunning(stateRef.current)) {
       openOverlay("new_game")
       return
     }
+    newGame()
+  }
+
+  // Says so when the last game master goes back to playing, since that's easy to miss in a long list
+  function pickGameMaster(name: string) {
+    const before = stateRef.current
+    dispatch({ type: "SET_GAME_MASTER", name })
     closeOverlay()
-    dispatch({ type: "NEW_GAME" })
+    const previous = before.gameMaster
+    const after = stateRef.current
+    if (previous === null || after.gameMaster === previous) return
+    const rejoined = (s: GameState) => s.players.some((p) => sameName(p.name, previous))
+    if (!rejoined(before) && rejoined(after)) flash(`${previous} joins the players`)
   }
 
   // The browser's own install dialog when there is one (Chrome), otherwise how-to steps (Firefox, Safari)
@@ -150,14 +169,19 @@ export function App({ boot }: Props) {
     void promptInstall()
   }
 
+  function flash(text: string) {
+    window.clearTimeout(toastTimerRef.current)
+    setToast(text)
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 2200)
+  }
+
   async function copyState() {
     try {
       await navigator.clipboard.writeText(JSON.stringify(stateRef.current, null, 2))
-      setToast("Game data copied")
+      flash("Game data copied")
     } catch {
-      setToast("Couldn't copy")
+      flash("Couldn't copy")
     }
-    window.setTimeout(() => setToast(null), 1800)
   }
 
   return (
@@ -176,6 +200,8 @@ export function App({ boot }: Props) {
         state={state}
         dispatch={dispatch}
         onInstall={install}
+        onPickGameMaster={() => openOverlay("game_master")}
+        onPlayAgain={newGame}
       />
 
       {overlay === "menu" && (
@@ -198,10 +224,14 @@ export function App({ boot }: Props) {
       {overlay === "new_game" && (
         <NewGameSheet
           onClose={closeOverlay}
-          onConfirm={() => {
-            closeOverlay()
-            dispatch({ type: "NEW_GAME" })
-          }}
+          onConfirm={newGame}
+        />
+      )}
+      {overlay === "game_master" && (
+        <GameMasterSheet
+          state={state}
+          onPick={pickGameMaster}
+          onClose={closeOverlay}
         />
       )}
       {overlay === "roles" && (
@@ -257,11 +287,22 @@ type CurrentScreenProps = {
   state: GameState
   dispatch: (action: GameAction) => void
   onInstall: () => void
+  onPickGameMaster: () => void
+  onPlayAgain: () => void
 }
 
-function CurrentScreen({ state, dispatch, onInstall }: CurrentScreenProps) {
+function CurrentScreen({ state, dispatch, onInstall, onPickGameMaster, onPlayAgain }: CurrentScreenProps) {
   const phase = state.currentPhase
-  if (phase.type === "setup") return <SetupScreen state={state} dispatch={dispatch} onInstall={onInstall} />
+  if (phase.type === "setup") {
+    return (
+      <SetupScreen
+        state={state}
+        dispatch={dispatch}
+        onInstall={onInstall}
+        onPickGameMaster={onPickGameMaster}
+      />
+    )
+  }
   if (phase.type === "role_config") return <RoleConfigScreen state={state} dispatch={dispatch} />
   if (phase.type === "night_courtesan") return <CourtesanScreen state={state} dispatch={dispatch} />
   if (phase.type === "night_baby_wolf") return <BabyWolfScreen state={state} dispatch={dispatch} />
@@ -270,6 +311,6 @@ function CurrentScreen({ state, dispatch, onInstall }: CurrentScreenProps) {
   if (phase.type === "night_seer") return <SeerScreen state={state} dispatch={dispatch} />
   if (phase.type === "night_results") return <NightResultsScreen state={state} dispatch={dispatch} />
   if (phase.type === "day_vote") return <DayVoteScreen state={state} dispatch={dispatch} />
-  if (phase.type === "game_over") return <GameOverScreen state={state} dispatch={dispatch} winner={phase.winner} />
+  if (phase.type === "game_over") return <GameOverScreen state={state} winner={phase.winner} onPlayAgain={onPlayAgain} />
   return null
 }

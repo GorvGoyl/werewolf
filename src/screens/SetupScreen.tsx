@@ -3,7 +3,7 @@ import { useRef, useState } from "react"
 import { MIN_PLAYERS } from "../game/types"
 import type { Player } from "../game/types"
 import { sameName, splitNames } from "../game/reducer"
-import { ActionBar, Avatar, Button, Screen, ScreenTitle, SectionLabel, TextButton } from "../components/ui"
+import { ActionBar, Avatar, Button, IconTile, Screen, ScreenTitle, SectionLabel, TextButton } from "../components/ui"
 import { Icon } from "../components/icons"
 import { InstallBanner } from "../components/Install"
 import { cx } from "../lib/cx"
@@ -20,15 +20,18 @@ function nextLabel(count: number): string {
   return `Next: choose roles (${count})`
 }
 
-type Props = ScreenProps & { onInstall: () => void }
+type Props = ScreenProps & { onInstall: () => void; onPickGameMaster: () => void }
 
-export function SetupScreen({ state, dispatch, onInstall }: Props) {
+export function SetupScreen({ state, dispatch, onInstall, onPickGameMaster }: Props) {
   const [draft, setDraft] = useState("")
   const [managing, setManaging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const count = state.players.length
-  const suggestions = state.savedNames.filter((name) => !state.players.some((p) => sameName(p.name, name)))
+  // The game master isn't playing, so they're not suggested either
+  const taken = state.players.map((p) => p.name)
+  if (state.gameMaster) taken.push(state.gameMaster)
+  const suggestions = state.savedNames.filter((name) => !taken.some((n) => sameName(n, name)))
 
   function addNames(text: string) {
     const names = splitNames(text)
@@ -60,6 +63,11 @@ export function SetupScreen({ state, dispatch, onInstall }: Props) {
           icon="users"
           title="Who's playing?"
           subtitle={playersLabel(count)}
+        />
+
+        <GameMasterCard
+          name={state.gameMaster}
+          onChange={onPickGameMaster}
         />
 
         <form
@@ -164,6 +172,42 @@ export function SetupScreen({ state, dispatch, onInstall }: Props) {
         </Button>
       </ActionBar>
     </>
+  )
+}
+
+type GameMasterCardProps = { name: string | null; onChange: () => void }
+
+// Who runs the game on this phone, so they don't get added as a player
+function GameMasterCard({ name, onChange }: GameMasterCardProps) {
+  return (
+    <button
+      type="button"
+      onClick={onChange}
+      className={cx(
+        "mb-4 flex min-h-[72px] w-full items-center gap-3 rounded-2xl border py-2.5 pl-3 pr-4 text-left active:scale-[0.99]",
+        name && "border-white/5 bg-night-800/60 active:bg-night-700",
+        !name && "border-moon-500/40 bg-moon-500/10 active:bg-moon-500/20",
+      )}>
+      <IconTile icon="gameMaster" />
+      <span className="min-w-0 flex-1">
+        {name && (
+          <>
+            <span className="block text-[12px] font-bold uppercase tracking-[0.16em] text-moon-300">Game master</span>
+            <span className="block truncate text-[17px] font-semibold text-mist-100">{name}</span>
+          </>
+        )}
+        {!name && (
+          <>
+            <span className="block text-[16px] font-semibold text-mist-100">Who&apos;s the game master?</span>
+            <span className="block text-[13px] leading-snug text-mist-400">They run the game and don&apos;t get a card.</span>
+          </>
+        )}
+      </span>
+      <span className="shrink-0 text-[15px] font-semibold text-moon-300">
+        {name && "Change"}
+        {!name && "Choose"}
+      </span>
+    </button>
   )
 }
 
