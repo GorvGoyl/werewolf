@@ -77,6 +77,11 @@ function wizardLines(state: GameState, danger: Death[]): string[] {
   return lines
 }
 
+function potionsLeft(name: string | undefined, canSave: boolean, canKill: boolean): string {
+  if (!canSave && !canKill) return `${name} has no potions left.`
+  return `${name} can use a potion.`
+}
+
 function confirmLabel(state: GameState, saveId: string | null, killId: string | null): string {
   const parts: string[] = []
   if (saveId) parts.push(`Save ${playerName(state, saveId)}`)
@@ -122,7 +127,7 @@ function WizardPotions({ state, dispatch }: ScreenProps) {
           eyebrow={nightEyebrow(state)}
           icon={ROLE_ICON.wizard}
           title={name}
-          subtitle={`${wizard?.name} can use a potion.`}
+          subtitle={potionsLeft(wizard?.name, canSave, canKill)}
         />
         <ScriptCard
           lines={wizardLines(state, danger)}
