@@ -15,7 +15,7 @@ import {
   winnerLine,
 } from "../src/game/script"
 import { sanitizeState } from "../src/game/storage"
-import type { Death, GameState, RoleNames } from "../src/game/types"
+import type { Death, GameConfig, GameState, RoleNames } from "../src/game/types"
 import { DEFAULT_GAME_CONFIG } from "../src/game/types"
 
 const NIGHT_ROLES: NightRole[] = ["courtesan", "queen_wolf", "baby_wolf", "wolf", "wizard", "seer"]
@@ -29,6 +29,16 @@ const CALLED: Record<NightRole, string> = {
   wizard: "Wizard",
   seer: "Seer",
 }
+// Every role in play: all six are called on Night 1, then the four that wake every night
+const EVERY_ROLE: GameConfig = {
+  wolfCount: 3,
+  hasQueenWolf: true,
+  hasBabyWolf: true,
+  hasCourtesan: true,
+  hasWizard: true,
+  hasSeer: true,
+}
+const EVERY_NIGHT: NightRole[] = ["courtesan", "wolf", "wizard", "seer"]
 const BOTH_DIED: Death[] = [
   { playerId: "a", cause: "wolves" },
   { playerId: "b", cause: "wizard" },
@@ -63,6 +73,13 @@ function everyWording(read: Read, roleNames: RoleNames = {}): string[] {
 // The wordings one game reads on its first nights
 function firstNights(read: Read, seed: number, nights: number): string[] {
   return Array.from({ length: nights }, (_, i) => read(game(seed, i + 1)))
+}
+
+// What the roles called on a night hear, with their names taken out
+function heardOn(read: (state: GameState, role: NightRole) => string, seed: number, night: number): string[] {
+  const state = { ...game(seed, night), gameConfig: EVERY_ROLE }
+  const called = night === 1 ? NIGHT_ROLES : EVERY_NIGHT
+  return called.map((role) => read(state, role).replace(CALLED[role], "{role}"))
 }
 
 function everyLine(): Read[] {
@@ -144,10 +161,10 @@ describe("Script", () => {
   })
 
   it("a role hears a different wording on each of its first nights", () => {
-    for (const role of NIGHT_ROLES) {
-      for (const seed of [1, 2, 3, 4, 5]) {
-        expect(new Set(firstNights((s) => openEyes(s, role), seed, 6)).size).toBe(6)
-        expect(new Set(firstNights((s) => closeEyes(s, role), seed, 6)).size).toBe(6)
+    for (const role of EVERY_NIGHT) {
+      for (let seed = 0; seed < 20; seed++) {
+        expect(new Set(firstNights((s) => openEyes(s, role), seed, 5)).size).toBe(5)
+        expect(new Set(firstNights((s) => closeEyes(s, role), seed, 5)).size).toBe(5)
       }
     }
   })
@@ -155,10 +172,20 @@ describe("Script", () => {
   it("no two roles hear the same wording on the same night", () => {
     for (let seed = 0; seed < 20; seed++) {
       for (let night = 1; night <= 12; night++) {
-        const state = game(seed, night)
         for (const read of [openEyes, closeEyes]) {
-          const wordings = NIGHT_ROLES.map((role) => read(state, role).replace(CALLED[role], "{role}"))
-          expect(new Set(wordings).size).toBe(NIGHT_ROLES.length)
+          const heard = heardOn(read, seed, night)
+          expect(new Set(heard).size).toBe(heard.length)
+        }
+      }
+    }
+  })
+
+  it("what the roles hear one night isn't heard again the next", () => {
+    for (let seed = 0; seed < 20; seed++) {
+      for (let night = 1; night < 12; night++) {
+        for (const read of [openEyes, closeEyes]) {
+          const tonight = heardOn(read, seed, night)
+          expect(heardOn(read, seed, night + 1).filter((line) => tonight.includes(line))).toEqual([])
         }
       }
     }
