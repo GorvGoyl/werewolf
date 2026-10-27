@@ -180,7 +180,7 @@ export function App({ boot }: Props) {
   async function shareLink(link: string) {
     if ("share" in navigator) {
       try {
-        await navigator.share({ title: "Werewolf GM", text: "Players for the next Werewolf game", url: link })
+        await navigator.share({ url: link })
         return
       } catch (error) {
         // Closing the share menu isn't a failure
