@@ -5,7 +5,8 @@ export type Team = "wolves" | "village" | "wildcard"
 export const ROLE_ORDER: Role[] = ["queen_wolf", "wolf", "baby_wolf", "courtesan", "wizard", "seer", "villager"]
 
 export const DEFAULT_ROLE_NAMES: Record<Role, string> = {
-  courtesan: "Courtesan",
+  // The id is from when this role was called the Courtesan. Saved games and hand-over links store ids.
+  courtesan: "Prostitute",
   queen_wolf: "Queen Wolf",
   wolf: "Wolf",
   baby_wolf: "Baby Wolf",
