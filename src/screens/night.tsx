@@ -3,18 +3,18 @@ import { useState } from "react"
 import type { GameState, Role } from "../game/types"
 import { roleName } from "../game/roles"
 import { getNightSteps } from "../game/reducer"
+import type { NightRole } from "../game/script"
+import { closeEyes, nightfallLine, openEyes } from "../game/script"
 import { ROLE_ICON } from "../components/icons"
 import { ActionBar, Button, Callout, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
 import type { Tone } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
 import type { ScreenProps } from "./props"
 
-export const NIGHTFALL = "Night falls. Everyone, close your eyes."
-
 // Lines that open the night, on the first screen the GM sees
 export function nightfall(state: GameState, firstScreenOfStep: boolean): string[] {
   const first = getNightSteps(state)[0] === state.currentPhase.type
-  if (first && firstScreenOfStep) return [NIGHTFALL]
+  if (first && firstScreenOfStep) return [nightfallLine(state)]
   return []
 }
 
@@ -25,12 +25,6 @@ export function isLastNightStep(state: GameState): boolean {
 
 export function nightEyebrow(state: GameState): string {
   return `Night ${state.currentNight}`
-}
-
-// "Ana", "Ana and Ben", "Ana, Ben and Cleo"
-export function joinNames(names: string[]): string {
-  if (names.length <= 1) return names.join("")
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`
 }
 
 type IdentifyStepProps = ScreenProps & {
@@ -122,7 +116,7 @@ export function IdentifyStep({
 }
 
 type DeadRoleStepProps = ScreenProps & {
-  role: Role
+  role: NightRole
   opening: string[]
 }
 
@@ -141,8 +135,8 @@ export function DeadRoleStep({ state, dispatch, role, opening }: DeadRoleStepPro
           muted
         />
         <ScriptCard
-          lines={[...opening, `${name}, open your eyes.`]}
-          after={[`${name}, close your eyes.`]}
+          lines={[...opening, openEyes(state, role)]}
+          after={[closeEyes(state, role)]}
           tone="mist"
         />
         <Callout

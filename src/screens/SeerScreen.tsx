@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { roleName } from "../game/roles"
 import { alivePlayers, findRole, getPlayer, playerName } from "../game/selectors"
+import { closeEyes, nightQuestion, openEyes } from "../game/script"
 import { ActionBar, Avatar, Button, IconTile, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
 import { ROLE_ICON } from "../components/icons"
@@ -20,7 +21,7 @@ export function SeerScreen({ state, dispatch }: ScreenProps) {
         dispatch={dispatch}
         role="seer"
         title={name}
-        lines={[`${name}, open your eyes.`]}
+        lines={[openEyes(state, "seer")]}
         instruction="Tap the player who opened their eyes"
         confirmLabel={([who]) => `${who} is the ${name}`}
         onConfirm={([id]) => dispatch({ type: "ASSIGN_ROLE", playerId: id, role: "seer" })}
@@ -63,8 +64,8 @@ function SeerPick({ state, dispatch }: ScreenProps) {
 
   // On Night 1 the Seer already opened their eyes to be identified
   const lines: string[] = []
-  if (state.currentNight > 1) lines.push(`${name}, open your eyes.`)
-  lines.push(`${name}, whose card do you want to see?`)
+  if (state.currentNight > 1) lines.push(openEyes(state, "seer"))
+  lines.push(nightQuestion(state, "seer"))
 
   return (
     <>
@@ -147,7 +148,7 @@ function SeerResult({ state, dispatch }: ScreenProps) {
           </div>
         </div>
         <ScriptCard
-          lines={[`${name}, close your eyes.`]}
+          lines={[closeEyes(state, "seer")]}
           tone="mist"
         />
       </Screen>

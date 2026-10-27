@@ -22,6 +22,7 @@ export function createInitialState(): GameState {
     gameConfig: DEFAULT_GAME_CONFIG,
     babyWolfPlayerId: null,
     babyWolfTransformNight: null,
+    scriptSeed: 0,
     gameMaster: null,
     savedNames: [],
     timerMinutes: 3,
@@ -243,6 +244,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         lastCourtesanGuest: null,
         babyWolfPlayerId: null,
         babyWolfTransformNight: null,
+        scriptSeed: Math.floor(Math.random() * 2 ** 32),
       }
       return startNight(fresh, 1)
     }

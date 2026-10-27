@@ -2,6 +2,7 @@ import { useState } from "react"
 import type { Player } from "../game/types"
 import { isWolf, roleName } from "../game/roles"
 import { alivePlayers, eliminatedToday, playerName } from "../game/selectors"
+import { dayLines, votedOutLine } from "../game/script"
 import { ActionBar, Avatar, Button, IconTile, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
 import { Icon, ROLE_ICON, playerIcon } from "../components/icons"
@@ -47,7 +48,7 @@ function DayVote({ state, dispatch }: ScreenProps) {
           onMinutesChange={(minutes) => dispatch({ type: "SET_TIMER_MINUTES", minutes })}
         />
         <ScriptCard
-          lines={["Discuss: who do you think the wolves are?", "Time to vote. Who leaves the village?"]}
+          lines={dayLines(state)}
           tone="sun"
         />
         <Instruction>Tap the player voted out</Instruction>
@@ -133,7 +134,7 @@ function DayResult({ state, dispatch, player }: DayResultProps) {
           </div>
         </div>
         <ScriptCard
-          lines={[`${player.name}, you're out of the game.`]}
+          lines={[votedOutLine(state, player.name)]}
           tone="sun"
         />
       </Screen>

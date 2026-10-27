@@ -1,4 +1,5 @@
 import { roleName, rolePlural } from "../game/roles"
+import { closeEyes, openEyes } from "../game/script"
 import { Callout } from "../components/ui"
 import { IdentifyStep, nightfall } from "./night"
 import type { ScreenProps } from "./props"
@@ -15,8 +16,8 @@ export function BabyWolfScreen({ state, dispatch }: ScreenProps) {
       role="baby_wolf"
       title={name}
       tone="sun"
-      lines={[...nightfall(state, true), `${name}, open your eyes.`]}
-      after={[`${name}, close your eyes.`]}
+      lines={[...nightfall(state, true), openEyes(state, "baby_wolf")]}
+      after={[closeEyes(state, "baby_wolf")]}
       instruction="Tap the player who opened their eyes"
       confirmLabel={([who]) => `${who} is the ${name}`}
       onConfirm={([id]) => dispatch({ type: "IDENTIFY_BABY_WOLF", playerId: id })}

@@ -1,5 +1,6 @@
 import type { RoleNames, Winner } from "../game/types"
-import { roleName, rolePlural } from "../game/roles"
+import { rolePlural } from "../game/roles"
+import { winnerLine } from "../game/script"
 import { ActionBar, Button, IconTile, Screen, ScriptCard, SectionLabel } from "../components/ui"
 import type { Tone } from "../components/ui"
 import { RoleList } from "../components/RoleList"
@@ -7,11 +8,9 @@ import { Timeline } from "../components/Timeline"
 import { cx } from "../lib/cx"
 import type { ScreenProps } from "./props"
 
-function winnerText(winner: Winner, rn: RoleNames): { title: string; line: string } {
-  const wolf = roleName("wolf", rn).toLowerCase()
-  const wolves = rolePlural("wolf", rn).toLowerCase()
-  if (winner === "village") return { title: "The village wins!", line: `The village wins! Every ${wolf} is dead.` }
-  return { title: `The ${wolves} win!`, line: `The ${wolves} win! They've taken over the village.` }
+function winnerTitle(winner: Winner, rn: RoleNames): string {
+  if (winner === "village") return "The village wins!"
+  return `The ${rolePlural("wolf", rn).toLowerCase()} win!`
 }
 
 function winnerTone(winner: Winner): Tone {
@@ -22,7 +21,6 @@ function winnerTone(winner: Winner): Tone {
 type Props = Pick<ScreenProps, "state"> & { winner: Winner; onPlayAgain: () => void; onHandOver: () => void }
 
 export function GameOverScreen({ state, winner, onPlayAgain, onHandOver }: Props) {
-  const text = winnerText(winner, state.roleNames)
   const nights = state.nightEvents.length
   const village = winner === "village"
   const tone = winnerTone(winner)
@@ -56,7 +54,7 @@ export function GameOverScreen({ state, winner, onPlayAgain, onHandOver }: Props
               village && "text-leaf-400",
               !village && "text-blood-400",
             )}>
-            {text.title}
+            {winnerTitle(winner, state.roleNames)}
           </h1>
           <div className="mt-1 text-[15px] text-mist-300">
             After {nights} night{nights !== 1 && "s"}
@@ -64,7 +62,7 @@ export function GameOverScreen({ state, winner, onPlayAgain, onHandOver }: Props
         </div>
 
         <ScriptCard
-          lines={[text.line]}
+          lines={[winnerLine(state, winner)]}
           tone={tone}
         />
 

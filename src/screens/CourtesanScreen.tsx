@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { roleName } from "../game/roles"
 import { aliveId, alivePlayers, findRole, playerName } from "../game/selectors"
+import { closeEyes, nightQuestion, openEyes } from "../game/script"
 import { ActionBar, Button, Callout, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
 import { ROLE_ICON } from "../components/icons"
@@ -20,7 +21,7 @@ export function CourtesanScreen({ state, dispatch }: ScreenProps) {
         dispatch={dispatch}
         role="courtesan"
         title={name}
-        lines={[...nightfall(state, true), `${name}, open your eyes.`]}
+        lines={[...nightfall(state, true), openEyes(state, "courtesan")]}
         instruction="Tap the player who opened their eyes"
         confirmLabel={([who]) => `${who} is the ${name}`}
         onConfirm={([id]) => dispatch({ type: "ASSIGN_ROLE", playerId: id, role: "courtesan" })}
@@ -68,8 +69,8 @@ function CourtesanInvite({ state, dispatch }: ScreenProps) {
   // On Night 1 she already opened her eyes to be identified
   const awake = state.currentNight > 1
   const lines = nightfall(state, awake)
-  if (awake) lines.push(`${name}, open your eyes.`)
-  lines.push(`${name}, who do you want to invite tonight?`)
+  if (awake) lines.push(openEyes(state, "courtesan"))
+  lines.push(nightQuestion(state, "courtesan"))
 
   return (
     <>
@@ -82,7 +83,7 @@ function CourtesanInvite({ state, dispatch }: ScreenProps) {
         />
         <ScriptCard
           lines={lines}
-          after={[`${name}, close your eyes.`]}
+          after={[closeEyes(state, "courtesan")]}
         />
         {lastGuest && (
           <Callout

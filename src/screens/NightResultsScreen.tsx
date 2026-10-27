@@ -5,10 +5,10 @@ import {
   alivePlayers,
   bittenBabyWolfOf,
   getPlayer,
-  playerName,
   protectedGuestOf,
 } from "../game/selectors"
 import { causeText } from "../game/text"
+import { dawnLines } from "../game/script"
 import {
   ActionBar,
   Avatar,
@@ -23,14 +23,7 @@ import {
   playerTone,
 } from "../components/ui"
 import { ROLE_ICON, playerIcon } from "../components/icons"
-import { joinNames } from "./night"
 import type { ScreenProps } from "./props"
-
-function announcement(state: GameState, deaths: Death[]): string {
-  if (deaths.length === 0) return "Nobody died tonight."
-  const names = deaths.map((d) => playerName(state, d.playerId))
-  return `Tonight, ${joinNames(names)} died.`
-}
 
 function deathsTitle(count: number): string {
   if (count === 0) return "Nobody died"
@@ -60,7 +53,7 @@ export function NightResultsScreen({ state, dispatch }: ScreenProps) {
           tone="sun"
         />
         <ScriptCard
-          lines={["Everyone, open your eyes.", announcement(state, deaths)]}
+          lines={dawnLines(state, deaths)}
           tone="sun"
         />
 

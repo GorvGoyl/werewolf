@@ -9,11 +9,13 @@ import {
   getWolvesStep,
   playerName,
 } from "../game/selectors"
+import { closeEyes, nightQuestion, openEyes } from "../game/script"
+import { joinNames } from "../game/text"
 import { ActionBar, Button, Callout, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
 import { ROLE_ICON } from "../components/icons"
 import { asList } from "../lib/cx"
-import { IdentifyStep, joinNames, nightEyebrow, nightfall } from "./night"
+import { IdentifyStep, nightEyebrow, nightfall } from "./night"
 import type { ScreenProps } from "./props"
 
 export function WolvesScreen({ state, dispatch }: ScreenProps) {
@@ -31,7 +33,7 @@ export function WolvesScreen({ state, dispatch }: ScreenProps) {
         role="queen_wolf"
         title={queen}
         tone="blood"
-        lines={[...nightfall(state, true), `${queen}, open your eyes.`]}
+        lines={[...nightfall(state, true), openEyes(state, "queen_wolf")]}
         instruction="Tap the player who opened their eyes"
         confirmLabel={([who]) => `${who} is the ${queen}`}
         onConfirm={([id]) => dispatch({ type: "ASSIGN_ROLE", playerId: id, role: "queen_wolf" })}
@@ -54,7 +56,7 @@ export function WolvesScreen({ state, dispatch }: ScreenProps) {
         title={wolves}
         tone="blood"
         count={count}
-        lines={[...nightfall(state, !withQueen), `${wolves}, open your eyes.`]}
+        lines={[...nightfall(state, !withQueen), openEyes(state, "wolf")]}
         instruction={instruction}
         confirmLabel={(names) => packLabel(names, roleName("wolf", rn), wolves)}
         onConfirm={(ids) => dispatch({ type: "ASSIGN_WOLVES", playerIds: ids })}
@@ -101,8 +103,8 @@ function WolvesAttack({ state, dispatch }: ScreenProps) {
   // On Night 1 the pack already opened their eyes to be identified
   const awake = state.currentNight > 1
   const lines = nightfall(state, awake)
-  if (awake) lines.push(`${wolves}, open your eyes.`)
-  lines.push(`${wolves}, who do you want to kill tonight?`)
+  if (awake) lines.push(openEyes(state, "wolf"))
+  lines.push(nightQuestion(state, "wolf"))
 
   return (
     <>
@@ -125,7 +127,7 @@ function WolvesAttack({ state, dispatch }: ScreenProps) {
         )}
         <ScriptCard
           lines={lines}
-          after={[`${wolves}, close your eyes.`]}
+          after={[closeEyes(state, "wolf")]}
           tone="blood"
         />
         <Instruction>Tap the player they point at</Instruction>

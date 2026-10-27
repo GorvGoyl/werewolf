@@ -67,6 +67,8 @@ export type GameState = {
   gameConfig: GameConfig
   babyWolfPlayerId: string | null
   babyWolfTransformNight: number | null
+  // Picks which wording of each line the game master reads (see script.ts). New for every game.
+  scriptSeed: number
   // Who runs the game on this phone. They get no card, so they're never one of the players.
   // A new game keeps them until someone else takes over.
   gameMaster: string | null

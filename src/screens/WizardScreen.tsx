@@ -5,6 +5,7 @@ import { roleName } from "../game/roles"
 import { getPlayersInDanger } from "../game/deaths"
 import { alivePlayers, findRole, playerName } from "../game/selectors"
 import { causeText } from "../game/text"
+import { closeEyes, killQuestion, noPotionsLine, openEyes, saveQuestion } from "../game/script"
 import {
   ActionBar,
   Avatar,
@@ -34,7 +35,7 @@ export function WizardScreen({ state, dispatch }: ScreenProps) {
         dispatch={dispatch}
         role="wizard"
         title={name}
-        lines={[`${name}, open your eyes.`]}
+        lines={[openEyes(state, "wizard")]}
         instruction="Tap the player who opened their eyes"
         confirmLabel={([who]) => `${who} is the ${name}`}
         onConfirm={([id]) => dispatch({ type: "ASSIGN_ROLE", playerId: id, role: "wizard" })}
@@ -63,17 +64,12 @@ export function WizardScreen({ state, dispatch }: ScreenProps) {
 }
 
 function wizardLines(state: GameState, danger: Death[]): string[] {
-  const name = roleName("wizard", state.roleNames)
   const lines: string[] = []
   // On Night 1 the Wizard already opened their eyes to be identified
-  if (state.currentNight > 1) lines.push(`${name}, open your eyes.`)
-  if (!state.wizardSavePotionUsed) {
-    if (danger.length === 0) lines.push("Nobody is dying tonight.")
-    if (danger.length === 1) lines.push("This person is dying tonight. Do you want to save them?")
-    if (danger.length > 1) lines.push("These people are dying tonight. Do you want to save one of them?")
-  }
-  if (!state.wizardKillPotionUsed) lines.push("Do you want to use your kill potion on anyone?")
-  if (lines.length === 0) lines.push(`${name}, you have no potions left.`)
+  if (state.currentNight > 1) lines.push(openEyes(state, "wizard"))
+  if (!state.wizardSavePotionUsed) lines.push(saveQuestion(state, danger.length))
+  if (!state.wizardKillPotionUsed) lines.push(killQuestion(state))
+  if (state.wizardSavePotionUsed && state.wizardKillPotionUsed) lines.push(noPotionsLine(state))
   return lines
 }
 
@@ -131,7 +127,7 @@ function WizardPotions({ state, dispatch }: ScreenProps) {
         />
         <ScriptCard
           lines={wizardLines(state, danger)}
-          after={[`${name}, close your eyes.`]}
+          after={[closeEyes(state, "wizard")]}
         />
 
         <SectionLabel icon="skull">Dying tonight</SectionLabel>
