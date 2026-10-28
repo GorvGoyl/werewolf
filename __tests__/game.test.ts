@@ -3,6 +3,7 @@ import {
   createInitialState,
   gameReducer,
   getNightSteps,
+  hasHadTurn,
   keepSettings,
   splitNames,
 } from "../src/game/reducer"
@@ -18,6 +19,9 @@ const NAMES = ["ali", "G", "chris", "ha", "josie", "julia", "liana", "maud"]
 
 // The table most tests play: the Queen Wolf and a Wolf, the Courtesan, the Wizard and the Seer
 const WITH_QUEEN: GameConfig = { ...DEFAULT_GAME_CONFIG, hasQueenWolf: true }
+
+// After a role's turn the game master tells them to close their eyes, then taps Next
+const NEXT: GameAction = { type: "SKIP_TO_NEXT_PHASE" }
 
 function run(state: GameState, ...actions: GameAction[]): GameState {
   return actions.reduce(gameReducer, state)
@@ -55,11 +59,11 @@ function playNight1(state: GameState, night: Night1): GameState {
   if (config.hasCourtesan) {
     expect(s.currentPhase.type).toBe("night_courtesan")
     s = run(s, { type: "ASSIGN_ROLE", playerId: id("G"), role: "courtesan" })
-    s = run(s, { type: "SET_COURTESAN_GUEST", playerId: id(night.guest ?? "ali") })
+    s = run(s, { type: "SET_COURTESAN_GUEST", playerId: id(night.guest ?? "ali") }, NEXT)
   }
   if (config.hasBabyWolf) {
     expect(s.currentPhase.type).toBe("night_baby_wolf")
-    s = run(s, { type: "IDENTIFY_BABY_WOLF", playerId: id("julia") })
+    s = run(s, { type: "IDENTIFY_BABY_WOLF", playerId: id("julia") }, NEXT)
   }
   expect(s.currentPhase.type).toBe("night_wolves")
   if (config.hasQueenWolf) {
@@ -73,16 +77,20 @@ function playNight1(state: GameState, night: Night1): GameState {
     s = run(s, { type: "ASSIGN_WOLVES", playerIds: pack })
   }
   expect(getWolvesStep(s)).toBe("attack")
-  s = run(s, { type: "SET_WOLF_TARGET", playerId: id(night.target) })
+  s = run(s, { type: "SET_WOLF_TARGET", playerId: id(night.target) }, NEXT)
 
   if (config.hasWizard) {
     expect(s.currentPhase.type).toBe("night_wizard")
     s = run(s, { type: "ASSIGN_ROLE", playerId: id("ha"), role: "wizard" })
-    s = run(s, {
-      type: "WIZARD_DECIDE",
-      saveId: night.save ? id(night.save) : null,
-      killId: night.kill ? id(night.kill) : null,
-    })
+    s = run(
+      s,
+      {
+        type: "WIZARD_DECIDE",
+        saveId: night.save ? id(night.save) : null,
+        killId: night.kill ? id(night.kill) : null,
+      },
+      NEXT,
+    )
   }
   if (config.hasSeer) {
     expect(s.currentPhase.type).toBe("night_seer")
@@ -324,6 +332,7 @@ describe("Night 1", () => {
       state,
       { type: "ASSIGN_WOLVES", playerIds: [idOf(state, "A"), idOf(state, "B")] },
       { type: "SET_WOLF_TARGET", playerId: idOf(state, "C") },
+      NEXT,
     )
     expect(state.currentPhase).toEqual({ type: "night_results" })
     expect(state.players.filter((p) => p.role === "wolf")).toHaveLength(2)
@@ -342,12 +351,16 @@ describe("Seer", () => {
       state,
       { type: "ASSIGN_ROLE", playerId: idOf(state, "G"), role: "courtesan" },
       { type: "SET_COURTESAN_GUEST", playerId: idOf(state, "liana") },
+      NEXT,
       { type: "IDENTIFY_BABY_WOLF", playerId: idOf(state, "julia") },
+      NEXT,
       { type: "ASSIGN_ROLE", playerId: idOf(state, "josie"), role: "queen_wolf" },
       { type: "ASSIGN_WOLVES", playerIds: [idOf(state, "maud")] },
       { type: "SET_WOLF_TARGET", playerId: idOf(state, "liana") },
+      NEXT,
       { type: "ASSIGN_ROLE", playerId: idOf(state, "ha"), role: "wizard" },
       { type: "WIZARD_DECIDE", saveId: null, killId: null },
+      NEXT,
       { type: "ASSIGN_ROLE", playerId: idOf(state, "chris"), role: "seer" },
     )
     expect(state.currentPhase).toEqual({ type: "night_seer" })
@@ -516,14 +529,14 @@ describe("Night 2+ flow", () => {
     expect(state.currentPhase).toEqual({ type: "night_courtesan" })
     expect(state.currentNight).toBe(2)
 
-    state = run(state, { type: "SET_COURTESAN_GUEST", playerId: idOf(state, "julia") })
+    state = run(state, { type: "SET_COURTESAN_GUEST", playerId: idOf(state, "julia") }, NEXT)
     expect(state.currentPhase).toEqual({ type: "night_wolves" })
     expect(getWolvesStep(state)).toBe("attack")
 
-    state = run(state, { type: "SET_WOLF_TARGET", playerId: idOf(state, "ali") })
+    state = run(state, { type: "SET_WOLF_TARGET", playerId: idOf(state, "ali") }, NEXT)
     expect(state.currentPhase).toEqual({ type: "night_wizard" })
 
-    state = run(state, { type: "WIZARD_DECIDE", saveId: null, killId: null })
+    state = run(state, { type: "WIZARD_DECIDE", saveId: null, killId: null }, NEXT)
     expect(state.currentPhase).toEqual({ type: "night_seer" })
 
     state = run(state, { type: "SKIP_TO_NEXT_PHASE" })
@@ -534,23 +547,56 @@ describe("Night 2+ flow", () => {
   it("skips the steps of roles that aren't in play", () => {
     let state = run(buildGameWithRoles({ hasCourtesan: false, hasWizard: false }), { type: "START_NEXT_NIGHT" })
     expect(state.currentPhase).toEqual({ type: "night_wolves" })
-    state = run(state, { type: "SET_WOLF_TARGET", playerId: idOf(state, "ali") })
+    state = run(state, { type: "SET_WOLF_TARGET", playerId: idOf(state, "ali") }, NEXT)
     expect(state.currentPhase).toEqual({ type: "night_seer" })
   })
 
-  it("dead roles are skipped with SKIP_TO_NEXT_PHASE", () => {
+  it("waits for each role to close their eyes before the next one wakes", () => {
     let state = run(buildGameWithRoles(), { type: "START_NEXT_NIGHT" })
-    state = run(state, { type: "SKIP_TO_NEXT_PHASE" })
+    expect(hasHadTurn(state)).toBe(false)
+    state = run(state, { type: "SET_COURTESAN_GUEST", playerId: idOf(state, "julia") })
+    expect(state.currentPhase).toEqual({ type: "night_courtesan" })
+    expect(hasHadTurn(state)).toBe(true)
+    state = run(state, NEXT)
     expect(state.currentPhase).toEqual({ type: "night_wolves" })
+    expect(hasHadTurn(state)).toBe(false)
+    state = run(state, { type: "SET_WOLF_TARGET", playerId: idOf(state, "ali") }, NEXT)
+    // Using no potion is a turn too
+    state = run(state, { type: "WIZARD_DECIDE", saveId: null, killId: null })
+    expect(state.currentPhase).toEqual({ type: "night_wizard" })
+    expect(hasHadTurn(state)).toBe(true)
+  })
+
+  it("dead roles are called, do nothing, then close their eyes", () => {
+    let state = buildGameWithRoles()
+    state = run(state, { type: "ELIMINATE_PLAYER", playerId: idOf(state, "G") }, { type: "START_NEXT_NIGHT" })
+    expect(state.currentPhase).toEqual({ type: "night_courtesan" })
+    state = run(state, { type: "CALL_DEAD_ROLE" })
+    expect(state.currentPhase).toEqual({ type: "night_courtesan" })
+    expect(state.currentNightEvent.courtesanGuest).toBeNull()
+    expect(hasHadTurn(state)).toBe(true)
+    state = run(state, NEXT, { type: "SET_WOLF_TARGET", playerId: idOf(state, "julia") }, NEXT)
+    state = run(state, { type: "WIZARD_DECIDE", saveId: null, killId: null }, NEXT)
+    // The Seer checks nobody
+    state = run(state, NEXT)
+    expect(state.currentPhase).toEqual({ type: "night_results" })
+    expect(byName(state, "julia").isAlive).toBe(false)
+    expect(state.lastCourtesanGuest).toBeNull()
+  })
+
+  it("only calls a dead role when it's dead", () => {
+    const state = run(buildGameWithRoles(), { type: "START_NEXT_NIGHT" })
+    expect(run(state, { type: "CALL_DEAD_ROLE" })).toBe(state)
   })
 
   it("ignores a double tap on confirm", () => {
     let state = run(buildGameWithRoles(), { type: "START_NEXT_NIGHT" })
-    state = run(state, { type: "SET_COURTESAN_GUEST", playerId: idOf(state, "julia") })
+    state = run(state, { type: "SET_COURTESAN_GUEST", playerId: idOf(state, "julia") }, NEXT)
     state = run(state, { type: "SET_WOLF_TARGET", playerId: idOf(state, "ali") })
-    const again = run(state, { type: "SET_WOLF_TARGET", playerId: idOf(state, "ali") })
+    const again = run(state, { type: "SET_WOLF_TARGET", playerId: idOf(state, "liana") })
     expect(again).toBe(state)
-    expect(again.currentPhase).toEqual({ type: "night_wizard" })
+    expect(again.currentPhase).toEqual({ type: "night_wolves" })
+    expect(again.currentNightEvent.wolfTarget).toBe(idOf(state, "ali"))
   })
 
   it("SKIP_TO_NEXT_PHASE does nothing outside the night", () => {
@@ -563,8 +609,11 @@ describe("Night 2+ flow", () => {
     state = run(
       state,
       { type: "SET_COURTESAN_GUEST", playerId: idOf(state, "ali") },
+      NEXT,
       { type: "SET_WOLF_TARGET", playerId: idOf(state, "julia") },
+      NEXT,
       { type: "WIZARD_DECIDE", saveId: null, killId: null },
+      NEXT,
       { type: "SKIP_TO_NEXT_PHASE" },
     )
     expect(state.currentNightEvent).toEqual({})
@@ -577,7 +626,9 @@ describe("Night 2+ flow", () => {
       state,
       { type: "SKIP_TO_NEXT_PHASE" },
       { type: "SET_WOLF_TARGET", playerId: idOf(state, "julia") },
+      NEXT,
       { type: "WIZARD_DECIDE", saveId: null, killId: null },
+      NEXT,
       { type: "SKIP_TO_NEXT_PHASE" },
     )
     expect(state.lastCourtesanGuest).toBeNull()
@@ -590,21 +641,27 @@ describe("Night 2+ flow", () => {
 describe("Wizard potions", () => {
   function atWizard(state: GameState): GameState {
     let s = run(state, { type: "START_NEXT_NIGHT" })
-    s = run(s, { type: "SET_COURTESAN_GUEST", playerId: idOf(s, "julia") }, { type: "SET_WOLF_TARGET", playerId: idOf(s, "ali") })
+    s = run(
+      s,
+      { type: "SET_COURTESAN_GUEST", playerId: idOf(s, "julia") },
+      NEXT,
+      { type: "SET_WOLF_TARGET", playerId: idOf(s, "ali") },
+      NEXT,
+    )
     expect(s.currentPhase).toEqual({ type: "night_wizard" })
     return s
   }
 
   it("marks used potions and can't use them twice", () => {
     let state = atWizard(buildGameWithRoles())
-    state = run(state, { type: "WIZARD_DECIDE", saveId: idOf(state, "ali"), killId: null })
+    state = run(state, { type: "WIZARD_DECIDE", saveId: idOf(state, "ali"), killId: null }, NEXT)
     expect(state.wizardSavePotionUsed).toBe(true)
     expect(state.wizardKillPotionUsed).toBe(false)
     state = run(state, { type: "SKIP_TO_NEXT_PHASE" }, { type: "START_DAY" })
     expect(byName(state, "ali").isAlive).toBe(true)
 
     state = atWizard(state)
-    state = run(state, { type: "WIZARD_DECIDE", saveId: idOf(state, "ali"), killId: idOf(state, "maud") })
+    state = run(state, { type: "WIZARD_DECIDE", saveId: idOf(state, "ali"), killId: idOf(state, "maud") }, NEXT)
     expect(state.currentNightEvent.wizardSaved).toBeNull()
     expect(state.currentNightEvent.wizardKilled).toBe(idOf(state, "maud"))
     state = run(state, { type: "SKIP_TO_NEXT_PHASE" })
@@ -670,6 +727,7 @@ describe("Win conditions", () => {
       state,
       { type: "ASSIGN_WOLVES", playerIds: [idOf(state, "A"), idOf(state, "B")] },
       { type: "SET_WOLF_TARGET", playerId: idOf(state, "C") },
+      NEXT,
     )
     // 2 wolves vs 3 others before the kill, 2 vs 2 after
     expect(state.currentPhase).toEqual({ type: "game_over", winner: "wolves" })
@@ -686,8 +744,11 @@ describe("Baby Wolf", () => {
     state = run(
       state,
       { type: "SET_COURTESAN_GUEST", playerId: idOf(state, guest) },
+      NEXT,
       { type: "SET_WOLF_TARGET", playerId: idOf(state, target) },
+      NEXT,
       { type: "WIZARD_DECIDE", saveId: null, killId: kill ? idOf(state, kill) : null },
+      NEXT,
       { type: "SKIP_TO_NEXT_PHASE" },
     )
     return state
@@ -876,8 +937,11 @@ describe("Timeline", () => {
     state = run(
       state,
       { type: "SET_COURTESAN_GUEST", playerId: idOf(state, "ali") },
+      NEXT,
       { type: "SET_WOLF_TARGET", playerId: idOf(state, "liana") },
+      NEXT,
       { type: "WIZARD_DECIDE", saveId: null, killId: null },
+      NEXT,
       { type: "SKIP_TO_NEXT_PHASE" },
       { type: "START_DAY" },
     )
@@ -899,7 +963,9 @@ describe("Timeline", () => {
     state = run(
       state,
       { type: "SET_COURTESAN_GUEST", playerId: idOf(state, "ali") },
+      NEXT,
       { type: "SET_WOLF_TARGET", playerId: idOf(state, "liana") },
+      NEXT,
     )
     expect(summary(state)).toEqual([
       ["night", 1, false],
@@ -938,6 +1004,7 @@ describe("Timeline", () => {
       state,
       { type: "ASSIGN_WOLVES", playerIds: [idOf(state, "A"), idOf(state, "B")] },
       { type: "SET_WOLF_TARGET", playerId: idOf(state, "C") },
+      NEXT,
     )
     expect(state.currentPhase.type).toBe("game_over")
     expect(summary(state)).toEqual([["night", 1, false]])

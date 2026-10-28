@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import type { GameAction, GameState, Role } from "./game/types"
-import { gameReducer, isNightStep, keepSettings, sameName } from "./game/reducer"
+import { gameReducer, hasHadTurn, isNightStep, keepSettings, sameName } from "./game/reducer"
 import { eliminatedToday, isGameRunning } from "./game/selectors"
 import type { Boot } from "./game/storage"
 import { MAX_HISTORY, saveHistory, saveState } from "./game/storage"
@@ -42,11 +42,11 @@ const NOT_UNDOABLE: Array<GameAction["type"]> = [
   "FORGET_SAVED_NAME",
 ]
 
-// Changes whenever a different screen (or step within one) is shown
+// Changes whenever a different screen (or step within one) is shown, like a role's eyes closing
 function screenKey(state: GameState): string {
   const identified = state.players.filter((p) => p.role !== null).length
-  const checked = state.currentNightEvent.seerChecked ?? ""
-  return [state.currentPhase.type, state.currentNight, state.currentDay, identified, checked, eliminatedToday(state).length].join(":")
+  const turn = hasHadTurn(state)
+  return [state.currentPhase.type, state.currentNight, state.currentDay, identified, turn, eliminatedToday(state).length].join(":")
 }
 
 function skyClass(state: GameState): string {

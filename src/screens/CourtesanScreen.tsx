@@ -1,12 +1,13 @@
 import { useState } from "react"
 import { roleName } from "../game/roles"
+import { hasHadTurn } from "../game/reducer"
 import { aliveId, alivePlayers, findRole, playerName } from "../game/selectors"
-import { closeEyes, nightQuestion, openEyes } from "../game/script"
+import { nightQuestion, openEyes } from "../game/script"
 import { ActionBar, Button, Callout, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
 import { ROLE_ICON } from "../components/icons"
 import { asList } from "../lib/cx"
-import { DeadRoleStep, IdentifyStep, nightEyebrow, nightfall } from "./night"
+import { CloseEyesStep, DeadRoleStep, IdentifyStep, nightEyebrow, nightfall } from "./night"
 import type { ScreenProps } from "./props"
 
 export function CourtesanScreen({ state, dispatch }: ScreenProps) {
@@ -36,6 +37,18 @@ export function CourtesanScreen({ state, dispatch }: ScreenProps) {
         dispatch={dispatch}
         role="courtesan"
         opening={nightfall(state, true)}
+      />
+    )
+  }
+
+  if (hasHadTurn(state)) {
+    return (
+      <CloseEyesStep
+        state={state}
+        dispatch={dispatch}
+        role="courtesan"
+        title={name}
+        subtitle={`${courtesan.name} invited ${playerName(state, state.currentNightEvent.courtesanGuest)}.`}
       />
     )
   }
@@ -82,10 +95,7 @@ function CourtesanInvite({ state, dispatch }: ScreenProps) {
           subtitle={`${courtesan?.name} picks a guest for the night.`}
           role="courtesan"
         />
-        <ScriptCard
-          lines={lines}
-          after={[closeEyes(state, "courtesan")]}
-        />
+        <ScriptCard lines={lines} />
         {lastGuest && (
           <Callout
             tone="sun"

@@ -6,7 +6,7 @@ import { ActionBar, Avatar, Button, IconTile, Instruction, Screen, ScreenTitle, 
 import { PlayerGrid } from "../components/PlayerGrid"
 import { ROLE_ICON } from "../components/icons"
 import { asList, cx } from "../lib/cx"
-import { DeadRoleStep, IdentifyStep, isLastNightStep, nightEyebrow } from "./night"
+import { DeadRoleStep, IdentifyStep, NextStepButton, nightEyebrow } from "./night"
 import type { ScreenProps } from "./props"
 
 export function SeerScreen({ state, dispatch }: ScreenProps) {
@@ -106,7 +106,6 @@ function SeerResult({ state, dispatch }: ScreenProps) {
   const name = roleName("seer", state.roleNames)
   const checked = getPlayer(state, state.currentNightEvent.seerChecked)
   const isWolf = state.currentNightEvent.seerResult === "wolf"
-  const last = isLastNightStep(state)
 
   return (
     <>
@@ -155,12 +154,10 @@ function SeerResult({ state, dispatch }: ScreenProps) {
         />
       </Screen>
       <ActionBar>
-        <Button
-          icon={last && "sunrise"}
-          onClick={() => dispatch({ type: "SKIP_TO_NEXT_PHASE" })}>
-          {last && "Continue to dawn"}
-          {!last && "Continue"}
-        </Button>
+        <NextStepButton
+          state={state}
+          dispatch={dispatch}
+        />
       </ActionBar>
     </>
   )

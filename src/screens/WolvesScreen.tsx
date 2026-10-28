@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { getRegularWolfCount, isWolf, roleName, rolePlural } from "../game/roles"
+import { hasHadTurn } from "../game/reducer"
 import {
   aliveId,
   alivePlayers,
@@ -9,13 +10,13 @@ import {
   getWolvesStep,
   playerName,
 } from "../game/selectors"
-import { closeEyes, nightQuestion, openEyes } from "../game/script"
+import { nightQuestion, openEyes } from "../game/script"
 import { joinNames } from "../game/text"
 import { ActionBar, Button, Callout, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
 import { ROLE_ICON } from "../components/icons"
 import { asList } from "../lib/cx"
-import { IdentifyStep, nightEyebrow, nightfall } from "./night"
+import { CloseEyesStep, IdentifyStep, nightEyebrow, nightfall } from "./night"
 import type { ScreenProps } from "./props"
 
 export function WolvesScreen({ state, dispatch }: ScreenProps) {
@@ -60,6 +61,20 @@ export function WolvesScreen({ state, dispatch }: ScreenProps) {
         instruction={instruction}
         confirmLabel={(names) => packLabel(names, roleName("wolf", rn), wolves)}
         onConfirm={(ids) => dispatch({ type: "ASSIGN_WOLVES", playerIds: ids })}
+      />
+    )
+  }
+
+  if (hasHadTurn(state)) {
+    const pack = alivePlayers(state).filter((p) => isWolf(p.role))
+    return (
+      <CloseEyesStep
+        state={state}
+        dispatch={dispatch}
+        role="wolf"
+        title={wolves}
+        subtitle={`${joinNames(pack.map((p) => p.name))} picked ${playerName(state, state.currentNightEvent.wolfTarget)}.`}
+        tone="blood"
       />
     )
   }
@@ -128,7 +143,6 @@ function WolvesAttack({ state, dispatch }: ScreenProps) {
         )}
         <ScriptCard
           lines={lines}
-          after={[closeEyes(state, "wolf")]}
           tone="blood"
         />
         <Instruction>Tap the player they point at</Instruction>

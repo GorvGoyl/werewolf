@@ -2,10 +2,11 @@ import type { ReactNode } from "react"
 import { useEffect, useRef, useState } from "react"
 import type { Death, GameState } from "../game/types"
 import { roleName } from "../game/roles"
+import { hasHadTurn } from "../game/reducer"
 import { getPlayersInDanger } from "../game/deaths"
 import { alivePlayers, findRole, playerName } from "../game/selectors"
 import { causeText } from "../game/text"
-import { closeEyes, killQuestion, noPotionsLine, openEyes, saveQuestion } from "../game/script"
+import { killQuestion, noPotionsLine, openEyes, saveQuestion } from "../game/script"
 import {
   ActionBar,
   Avatar,
@@ -20,7 +21,7 @@ import { PlayerGrid } from "../components/PlayerGrid"
 import { Icon, ROLE_ICON } from "../components/icons"
 import { asList, cx } from "../lib/cx"
 import { haptic } from "../lib/haptics"
-import { DeadRoleStep, IdentifyStep, nightEyebrow } from "./night"
+import { CloseEyesStep, DeadRoleStep, IdentifyStep, nightEyebrow } from "./night"
 import type { ScreenProps } from "./props"
 
 export function WizardScreen({ state, dispatch }: ScreenProps) {
@@ -55,12 +56,34 @@ export function WizardScreen({ state, dispatch }: ScreenProps) {
     )
   }
 
+  if (hasHadTurn(state)) {
+    return (
+      <CloseEyesStep
+        state={state}
+        dispatch={dispatch}
+        role="wizard"
+        title={name}
+        subtitle={potionsUsed(state, wizard.name)}
+      />
+    )
+  }
+
   return (
     <WizardPotions
       state={state}
       dispatch={dispatch}
     />
   )
+}
+
+// What the Wizard did tonight
+function potionsUsed(state: GameState, who: string): string {
+  const saved = playerName(state, state.currentNightEvent.wizardSaved)
+  const poisoned = playerName(state, state.currentNightEvent.wizardKilled)
+  if (saved && poisoned) return `${who} saved ${saved} and poisoned ${poisoned}.`
+  if (saved) return `${who} saved ${saved}.`
+  if (poisoned) return `${who} poisoned ${poisoned}.`
+  return `${who} used no potion.`
 }
 
 function wizardLines(state: GameState, danger: Death[]): string[] {
@@ -126,10 +149,7 @@ function WizardPotions({ state, dispatch }: ScreenProps) {
           subtitle={potionsLeft(wizard?.name, canSave, canKill)}
           role="wizard"
         />
-        <ScriptCard
-          lines={wizardLines(state, danger)}
-          after={[closeEyes(state, "wizard")]}
-        />
+        <ScriptCard lines={wizardLines(state, danger)} />
 
         <SectionLabel icon="skull">Dying tonight</SectionLabel>
         {danger.length === 0 && <EmptyNote>Nobody. The attack kills no one tonight.</EmptyNote>}

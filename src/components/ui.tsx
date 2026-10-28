@@ -172,12 +172,12 @@ export function ScreenTitle({ eyebrow, icon, title, subtitle, tone = "moon", mut
 
 type ScriptCardProps = {
   lines: string[]
-  after?: string[]
   tone?: Tone
 }
 
-// What the game master reads out loud, big enough to read in a dark room
-export function ScriptCard({ lines, after = [], tone = "moon" }: ScriptCardProps) {
+// What the game master reads out loud, big enough to read in a dark room. What to say once the
+// players have acted goes on the next screen, so each screen is one step.
+export function ScriptCard({ lines, tone = "moon" }: ScriptCardProps) {
   return (
     <section
       aria-label="Say out loud"
@@ -198,18 +198,6 @@ export function ScriptCard({ lines, after = [], tone = "moon" }: ScriptCardProps
           </p>
         ))}
       </div>
-      {after.length > 0 && (
-        <div className="mt-3 border-t border-white/5 pt-2.5">
-          <div className="mb-1 text-[11px] font-bold uppercase tracking-[0.2em] text-mist-400">Then</div>
-          {after.map((line) => (
-            <p
-              key={line}
-              className="font-script text-[17px] italic leading-snug text-mist-300">
-              “{line}”
-            </p>
-          ))}
-        </div>
-      )}
     </section>
   )
 }

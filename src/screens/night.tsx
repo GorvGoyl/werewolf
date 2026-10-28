@@ -1,10 +1,11 @@
 import type { ReactNode } from "react"
 import { useState } from "react"
 import type { GameState, Role } from "../game/types"
-import { roleName } from "../game/roles"
-import { getNightSteps } from "../game/reducer"
+import { STEP_ROLE, roleName, stepName } from "../game/roles"
+import { getNightSteps, hasHadTurn } from "../game/reducer"
 import type { NightRole } from "../game/script"
 import { closeEyes, nightfallLine, openEyes } from "../game/script"
+import type { IconName } from "../components/icons"
 import { ROLE_ICON } from "../components/icons"
 import { ActionBar, Button, Callout, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
 import type { Tone } from "../components/ui"
@@ -18,9 +19,27 @@ export function nightfall(state: GameState, firstScreenOfStep: boolean): string[
   return []
 }
 
-export function isLastNightStep(state: GameState): boolean {
+// Who wakes up after this step, or dawn after the last one
+function nextStep(state: GameState): { label: string; icon: IconName } {
   const steps = getNightSteps(state)
-  return steps[steps.length - 1] === state.currentPhase.type
+  const next = steps[steps.findIndex((step) => step === state.currentPhase.type) + 1]
+  if (!next) return { label: "Continue to dawn", icon: "sunrise" }
+  return { label: `Next: ${stepName(next, state.roleNames)}`, icon: ROLE_ICON[STEP_ROLE[next]] }
+}
+
+type NextStepButtonProps = ScreenProps & { tone?: Tone }
+
+// Ends this step of the night, once the role's eyes are closed
+export function NextStepButton({ state, dispatch, tone = "moon" }: NextStepButtonProps) {
+  const next = nextStep(state)
+  return (
+    <Button
+      tone={tone}
+      icon={next.icon}
+      onClick={() => dispatch({ type: "SKIP_TO_NEXT_PHASE" })}>
+      {next.label}
+    </Button>
+  )
 }
 
 export function nightEyebrow(state: GameState): string {
@@ -31,7 +50,6 @@ type IdentifyStepProps = ScreenProps & {
   role: Role
   title: string
   lines: string[]
-  after?: string[]
   instruction: string
   count?: number
   confirmLabel: (names: string[]) => string
@@ -46,7 +64,6 @@ export function IdentifyStep({
   role,
   title,
   lines,
-  after,
   instruction,
   count = 1,
   confirmLabel,
@@ -85,7 +102,6 @@ export function IdentifyStep({
         />
         <ScriptCard
           lines={lines}
-          after={after}
           tone={tone}
         />
         {hint}
@@ -116,14 +132,75 @@ export function IdentifyStep({
   )
 }
 
+type CloseEyesStepProps = ScreenProps & {
+  role: NightRole
+  title: string
+  subtitle: string
+  tone?: Tone
+  muted?: boolean
+}
+
+// After a role's turn, its own screen: the game master tells them to close their eyes, then goes on
+export function CloseEyesStep({
+  state,
+  dispatch,
+  role,
+  title,
+  subtitle,
+  tone = "moon",
+  muted = false,
+}: CloseEyesStepProps) {
+  let buttonTone: Tone = "moon"
+  if (muted) buttonTone = "mist"
+  return (
+    <>
+      <Screen>
+        <ScreenTitle
+          eyebrow={nightEyebrow(state)}
+          icon={ROLE_ICON[role]}
+          title={title}
+          subtitle={subtitle}
+          tone={tone}
+          muted={muted}
+          role={role}
+        />
+        <ScriptCard
+          lines={[closeEyes(state, role)]}
+          tone={tone}
+        />
+      </Screen>
+      <ActionBar>
+        <NextStepButton
+          state={state}
+          dispatch={dispatch}
+          tone={buttonTone}
+        />
+      </ActionBar>
+    </>
+  )
+}
+
 type DeadRoleStepProps = ScreenProps & {
   role: NightRole
   opening: string[]
 }
 
-// A dead role is still called, so the table can't tell who died
+// A dead role is still called, so the table can't tell who died: eyes open, a pause, then eyes closed
 export function DeadRoleStep({ state, dispatch, role, opening }: DeadRoleStepProps) {
   const name = roleName(role, state.roleNames)
+  if (hasHadTurn(state)) {
+    return (
+      <CloseEyesStep
+        state={state}
+        dispatch={dispatch}
+        role={role}
+        title={name}
+        subtitle={`The ${name} is dead.`}
+        tone="mist"
+        muted
+      />
+    )
+  }
   return (
     <>
       <Screen>
@@ -138,19 +215,19 @@ export function DeadRoleStep({ state, dispatch, role, opening }: DeadRoleStepPro
         />
         <ScriptCard
           lines={[...opening, openEyes(state, role)]}
-          after={[closeEyes(state, role)]}
           tone="mist"
         />
         <Callout
           icon="mask"
           title="Pretend">
-          Call the {name} anyway and wait a few seconds, so nobody can tell they're gone.
+          Nobody will open their eyes. Wait a few seconds, as if the {name} were choosing, so nobody can tell
+          they&apos;re gone.
         </Callout>
       </Screen>
       <ActionBar>
         <Button
           tone="mist"
-          onClick={() => dispatch({ type: "SKIP_TO_NEXT_PHASE" })}>
+          onClick={() => dispatch({ type: "CALL_DEAD_ROLE" })}>
           Continue
         </Button>
       </ActionBar>

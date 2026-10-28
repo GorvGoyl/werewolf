@@ -1,19 +1,10 @@
-import type { GameState, NightStep, Role, RoleNames } from "../game/types"
-import { roleName, rolePlural } from "../game/roles"
+import type { GameState, NightStep, Role } from "../game/types"
+import { STEP_ROLE, stepName } from "../game/roles"
 import { getNightSteps } from "../game/reducer"
 import { cx } from "../lib/cx"
 import { useShowRole } from "../lib/useShowRole"
 import type { IconName } from "./icons"
 import { Icon, ROLE_ICON } from "./icons"
-
-// Who wakes up at each step
-const STEP_ROLE: Record<NightStep, Role> = {
-  night_courtesan: "courtesan",
-  night_baby_wolf: "baby_wolf",
-  night_wolves: "wolf",
-  night_wizard: "wizard",
-  night_seer: "seer",
-}
 
 const GLOW = {
   moon: "border-moon-400 bg-moon-500/30 shadow-[0_0_14px_rgba(139,124,246,0.55)]",
@@ -28,14 +19,6 @@ const STEP_GLOW: Record<NightStep, string> = {
   night_wolves: GLOW.blood,
   night_wizard: GLOW.moon,
   night_seer: GLOW.moon,
-}
-
-function stepName(step: NightStep, rn: RoleNames): string {
-  if (step === "night_courtesan") return roleName("courtesan", rn)
-  if (step === "night_baby_wolf") return roleName("baby_wolf", rn)
-  if (step === "night_wolves") return rolePlural("wolf", rn)
-  if (step === "night_wizard") return roleName("wizard", rn)
-  return roleName("seer", rn)
 }
 
 type StepState = "done" | "current" | "next"

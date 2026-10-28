@@ -1,6 +1,15 @@
-import type { GameConfig, Player, Role, RoleNames } from "./types"
+import type { GameConfig, NightStep, Player, Role, RoleNames } from "./types"
 
 export type Team = "wolves" | "village" | "wildcard"
+
+// Who wakes up at each step of the night
+export const STEP_ROLE: Record<NightStep, Role> = {
+  night_courtesan: "courtesan",
+  night_baby_wolf: "baby_wolf",
+  night_wolves: "wolf",
+  night_wizard: "wizard",
+  night_seer: "seer",
+}
 
 export const ROLE_ORDER: Role[] = ["queen_wolf", "wolf", "baby_wolf", "courtesan", "wizard", "seer", "villager"]
 
@@ -29,6 +38,12 @@ export function pluralize(name: string): string {
 
 export function rolePlural(role: Role, overrides?: RoleNames): string {
   return pluralize(roleName(role, overrides))
+}
+
+// Who the game master calls at a step of the night: the wolves wake as a pack
+export function stepName(step: NightStep, overrides?: RoleNames): string {
+  if (step === "night_wolves") return rolePlural("wolf", overrides)
+  return roleName(STEP_ROLE[step], overrides)
 }
 
 export function isWolf(role: Role | null): boolean {

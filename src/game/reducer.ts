@@ -1,11 +1,18 @@
 import type { GameAction, GamePhase, GameState, NightEvent, NightStep, Player, Role } from "./types"
 import { DEFAULT_GAME_CONFIG } from "./types"
-import { isWolf, seerSees } from "./roles"
+import { STEP_ROLE, isWolf, seerSees } from "./roles"
 import { resolveDeaths } from "./deaths"
 
 const UNIQUE_ROLES: Role[] = ["courtesan", "queen_wolf", "baby_wolf", "wizard", "seer"]
 const NIGHT_STEPS: NightStep[] = ["night_courtesan", "night_baby_wolf", "night_wolves", "night_wizard", "night_seer"]
 const MAX_SAVED_NAMES = 100
+
+// A dead role's turn: nothing happens. The Baby Wolf and the wolves are never called dead.
+const NOTHING_DONE: Partial<Record<NightStep, Partial<NightEvent>>> = {
+  night_courtesan: { courtesanGuest: null },
+  night_wizard: { wizardSaved: null, wizardKilled: null },
+  night_seer: { seerChecked: null, seerResult: null },
+}
 
 export function createInitialState(): GameState {
   return {
@@ -85,6 +92,19 @@ export function checkWinCondition(players: Player[]): GamePhase | null {
   if (aliveWolves.length === 0) return { type: "game_over", winner: "village" }
   if (aliveWolves.length >= aliveOthers.length) return { type: "game_over", winner: "wolves" }
   return null
+}
+
+// The role woken at this step of the night has had their turn: the game master tells them to close
+// their eyes, then goes on. Until then the step stays, so Undo goes back to their choice.
+export function hasHadTurn(state: GameState): boolean {
+  const event = state.currentNightEvent
+  const phase = state.currentPhase.type
+  if (phase === "night_courtesan") return event.courtesanGuest !== undefined
+  if (phase === "night_baby_wolf") return state.babyWolfPlayerId !== null
+  if (phase === "night_wolves") return event.wolfTarget !== undefined
+  if (phase === "night_wizard") return event.wizardSaved !== undefined
+  if (phase === "night_seer") return event.seerChecked !== undefined
+  return false
 }
 
 // The wolves bit the Baby Wolf: they survive and join the pack next night.
@@ -271,42 +291,36 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
     }
 
+    // A role's choice is recorded once. The step goes on with SKIP_TO_NEXT_PHASE, after they close their eyes.
     case "IDENTIFY_BABY_WOLF": {
-      if (phase !== "night_baby_wolf") return state
-      const assigned = gameReducer(state, { type: "ASSIGN_ROLE", playerId: action.playerId, role: "baby_wolf" })
-      return advanceNight(assigned)
+      if (phase !== "night_baby_wolf" || hasHadTurn(state)) return state
+      return gameReducer(state, { type: "ASSIGN_ROLE", playerId: action.playerId, role: "baby_wolf" })
     }
 
     case "SET_COURTESAN_GUEST": {
-      if (phase !== "night_courtesan" || !isAlivePlayer(state, action.playerId)) return state
-      return advanceNight({
-        ...state,
-        currentNightEvent: { ...state.currentNightEvent, courtesanGuest: action.playerId },
-      })
+      if (phase !== "night_courtesan" || hasHadTurn(state) || !isAlivePlayer(state, action.playerId)) return state
+      return { ...state, currentNightEvent: { ...state.currentNightEvent, courtesanGuest: action.playerId } }
     }
 
     case "SET_WOLF_TARGET": {
-      if (phase !== "night_wolves" || !isAlivePlayer(state, action.playerId)) return state
-      return advanceNight({
-        ...state,
-        currentNightEvent: { ...state.currentNightEvent, wolfTarget: action.playerId },
-      })
+      if (phase !== "night_wolves" || hasHadTurn(state) || !isAlivePlayer(state, action.playerId)) return state
+      return { ...state, currentNightEvent: { ...state.currentNightEvent, wolfTarget: action.playerId } }
     }
 
     case "WIZARD_DECIDE": {
-      if (phase !== "night_wizard") return state
+      if (phase !== "night_wizard" || hasHadTurn(state)) return state
       const saveId = state.wizardSavePotionUsed ? null : action.saveId
       const killId = state.wizardKillPotionUsed ? null : action.killId
-      return advanceNight({
+      return {
         ...state,
         currentNightEvent: { ...state.currentNightEvent, wizardSaved: saveId, wizardKilled: killId },
         wizardSavePotionUsed: state.wizardSavePotionUsed || saveId !== null,
         wizardKillPotionUsed: state.wizardKillPotionUsed || killId !== null,
-      })
+      }
     }
 
     case "SET_SEER_CHECK": {
-      if (phase !== "night_seer" || state.currentNightEvent.seerChecked) return state
+      if (phase !== "night_seer" || hasHadTurn(state)) return state
       const target = state.players.find((p) => p.id === action.playerId)
       if (!target) return state
       return {
@@ -317,6 +331,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           seerResult: seerSees(target.role),
         },
       }
+    }
+
+    // A dead role is still called, so the table can't tell, and their turn passes with nothing done
+    case "CALL_DEAD_ROLE": {
+      if (!isNightStep(state.currentPhase) || hasHadTurn(state)) return state
+      const step = state.currentPhase.type
+      const nothing = NOTHING_DONE[step]
+      const dead = state.players.some((p) => p.role === STEP_ROLE[step] && !p.isAlive)
+      if (!nothing || !dead) return state
+      return { ...state, currentNightEvent: { ...state.currentNightEvent, ...nothing } }
     }
 
     case "SKIP_TO_NEXT_PHASE": {

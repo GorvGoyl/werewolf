@@ -95,6 +95,7 @@ export type GameAction =
   | { type: "SET_WOLF_TARGET"; playerId: string }
   | { type: "WIZARD_DECIDE"; saveId: string | null; killId: string | null }
   | { type: "SET_SEER_CHECK"; playerId: string }
+  | { type: "CALL_DEAD_ROLE" }
   | { type: "SKIP_TO_NEXT_PHASE" }
   | { type: "START_DAY" }
   | { type: "ELIMINATE_PLAYER"; playerId: string }
