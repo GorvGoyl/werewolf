@@ -39,7 +39,7 @@ function sanitizeConfig(value: unknown): GameConfig {
   if (!isRecord(value)) return DEFAULT_GAME_CONFIG
   return {
     wolfCount: typeof value.wolfCount === "number" && value.wolfCount >= 1 ? Math.floor(value.wolfCount) : 2,
-    hasQueenWolf: value.hasQueenWolf !== false,
+    hasQueenWolf: value.hasQueenWolf === true,
     hasBabyWolf: value.hasBabyWolf === true,
     hasCourtesan: value.hasCourtesan !== false,
     hasWizard: value.hasWizard !== false,

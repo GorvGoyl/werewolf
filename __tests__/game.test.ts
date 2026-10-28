@@ -16,6 +16,9 @@ import { DEFAULT_GAME_CONFIG } from "../src/game/types"
 
 const NAMES = ["ali", "G", "chris", "ha", "josie", "julia", "liana", "maud"]
 
+// The table most tests play: the Queen Wolf and a Wolf, the Courtesan, the Wizard and the Seer
+const WITH_QUEEN: GameConfig = { ...DEFAULT_GAME_CONFIG, hasQueenWolf: true }
+
 function run(state: GameState, ...actions: GameAction[]): GameState {
   return actions.reduce(gameReducer, state)
 }
@@ -92,7 +95,7 @@ function playNight1(state: GameState, night: Night1): GameState {
 
 // A game at Day 1 where nobody died on Night 1 (the wolves bit the Courtesan's guest)
 function buildGameWithRoles(config?: Partial<GameConfig>): GameState {
-  const fullConfig: GameConfig = { ...DEFAULT_GAME_CONFIG, ...config }
+  const fullConfig: GameConfig = { ...WITH_QUEEN, ...config }
   let state = run(setupGame(), { type: "START_ROLE_CONFIG" }, { type: "SET_GAME_CONFIG", config: fullConfig })
   const quietNight = fullConfig.hasCourtesan
     ? { guest: "liana", target: "liana" }
@@ -177,7 +180,7 @@ describe("Role config", () => {
   })
 
   it("SET_GAME_CONFIG stores the config and starts Night 1 at its first step", () => {
-    const config: GameConfig = { ...DEFAULT_GAME_CONFIG, wolfCount: 1, hasQueenWolf: false, hasCourtesan: false }
+    const config: GameConfig = { ...WITH_QUEEN, wolfCount: 1, hasQueenWolf: false, hasCourtesan: false }
     const state = run(setupGame(["A", "B", "C", "D", "E"]), { type: "START_ROLE_CONFIG" }, { type: "SET_GAME_CONFIG", config })
     expect(state.gameConfig).toEqual(config)
     expect(state.currentPhase).toEqual({ type: "night_wolves" })
@@ -186,18 +189,29 @@ describe("Role config", () => {
   })
 
   it("starts Night 1 with the Courtesan when she's in play", () => {
-    const state = run(setupGame(), { type: "START_ROLE_CONFIG" }, { type: "SET_GAME_CONFIG", config: DEFAULT_GAME_CONFIG })
+    const state = run(setupGame(), { type: "START_ROLE_CONFIG" }, { type: "SET_GAME_CONFIG", config: WITH_QUEEN })
     expect(state.currentPhase).toEqual({ type: "night_courtesan" })
   })
 
+  it("leaves the Queen Wolf out until the game master adds her", () => {
+    expect(createInitialState().gameConfig.hasQueenWolf).toBe(false)
+    expect(getLineup(DEFAULT_GAME_CONFIG, 8)).toEqual([
+      { role: "wolf", count: 2 },
+      { role: "courtesan", count: 1 },
+      { role: "wizard", count: 1 },
+      { role: "seer", count: 1 },
+      { role: "villager", count: 3 },
+    ])
+  })
+
   it("validates the number of wolves", () => {
-    expect(isConfigValid({ ...DEFAULT_GAME_CONFIG, wolfCount: 2 }, 8)).toBe(true)
-    expect(isConfigValid({ ...DEFAULT_GAME_CONFIG, wolfCount: 4 }, 8)).toBe(false)
-    expect(isConfigValid({ ...DEFAULT_GAME_CONFIG, wolfCount: 0 }, 8)).toBe(false)
+    expect(isConfigValid({ ...WITH_QUEEN, wolfCount: 2 }, 8)).toBe(true)
+    expect(isConfigValid({ ...WITH_QUEEN, wolfCount: 4 }, 8)).toBe(false)
+    expect(isConfigValid({ ...WITH_QUEEN, wolfCount: 0 }, 8)).toBe(false)
   })
 
   it("lists the lineup", () => {
-    expect(getLineup({ ...DEFAULT_GAME_CONFIG, wolfCount: 3, hasBabyWolf: true }, 12)).toEqual([
+    expect(getLineup({ ...WITH_QUEEN, wolfCount: 3, hasBabyWolf: true }, 12)).toEqual([
       { role: "queen_wolf", count: 1 },
       { role: "wolf", count: 2 },
       { role: "baby_wolf", count: 1 },
@@ -214,7 +228,7 @@ describe("Role config", () => {
 // ===========================
 describe("Night 1", () => {
   it("wakes the roles in order and they act like any other night", () => {
-    let state = run(setupGame(), { type: "START_ROLE_CONFIG" }, { type: "SET_GAME_CONFIG", config: DEFAULT_GAME_CONFIG })
+    let state = run(setupGame(), { type: "START_ROLE_CONFIG" }, { type: "SET_GAME_CONFIG", config: WITH_QUEEN })
     state = playNight1(state, { guest: "liana", target: "ali", check: "maud" })
     expect(state.currentPhase).toEqual({ type: "night_results" })
 
@@ -229,13 +243,13 @@ describe("Night 1", () => {
   })
 
   it("the Courtesan's guest is protected on Night 1 too", () => {
-    let state = run(setupGame(), { type: "START_ROLE_CONFIG" }, { type: "SET_GAME_CONFIG", config: DEFAULT_GAME_CONFIG })
+    let state = run(setupGame(), { type: "START_ROLE_CONFIG" }, { type: "SET_GAME_CONFIG", config: WITH_QUEEN })
     state = playNight1(state, { guest: "ali", target: "ali" })
     expect(state.nightEvents[0].deaths).toHaveLength(0)
   })
 
   it("the Wizard can use potions on Night 1", () => {
-    let state = run(setupGame(), { type: "START_ROLE_CONFIG" }, { type: "SET_GAME_CONFIG", config: DEFAULT_GAME_CONFIG })
+    let state = run(setupGame(), { type: "START_ROLE_CONFIG" }, { type: "SET_GAME_CONFIG", config: WITH_QUEEN })
     state = playNight1(state, { guest: "liana", target: "ali", save: "ali", kill: "maud" })
     expect(state.nightEvents[0].deaths).toEqual([{ playerId: idOf(state, "maud"), cause: "wizard" }])
     expect(state.wizardSavePotionUsed).toBe(true)
@@ -256,7 +270,7 @@ describe("Night 1", () => {
   })
 
   it("asks for the Queen Wolf, then the other wolves, then the kill", () => {
-    let state = run(setupGame(), { type: "SET_GAME_CONFIG", config: { ...DEFAULT_GAME_CONFIG, wolfCount: 3, hasCourtesan: false } })
+    let state = run(setupGame(), { type: "SET_GAME_CONFIG", config: { ...WITH_QUEEN, wolfCount: 3, hasCourtesan: false } })
     expect(getWolvesStep(state)).toBe("queen")
     state = run(state, { type: "ASSIGN_ROLE", playerId: idOf(state, "josie"), role: "queen_wolf" })
     expect(getWolvesStep(state)).toBe("pack")
@@ -267,14 +281,14 @@ describe("Night 1", () => {
   it("skips the pack step when the Queen is the only wolf", () => {
     let state = run(setupGame(), {
       type: "SET_GAME_CONFIG",
-      config: { ...DEFAULT_GAME_CONFIG, wolfCount: 1, hasCourtesan: false },
+      config: { ...WITH_QUEEN, wolfCount: 1, hasCourtesan: false },
     })
     state = run(state, { type: "ASSIGN_ROLE", playerId: idOf(state, "josie"), role: "queen_wolf" })
     expect(getWolvesStep(state)).toBe("attack")
   })
 
   it("wakes the Baby Wolf only on Night 1", () => {
-    const config = { ...DEFAULT_GAME_CONFIG, hasBabyWolf: true }
+    const config = { ...WITH_QUEEN, hasBabyWolf: true }
     expect(getNightSteps({ gameConfig: config, currentNight: 1 })).toEqual([
       "night_courtesan",
       "night_baby_wolf",
@@ -291,7 +305,7 @@ describe("Night 1", () => {
   })
 
   it("keeps a role unique when it's identified again", () => {
-    let state = run(setupGame(), { type: "SET_GAME_CONFIG", config: DEFAULT_GAME_CONFIG })
+    let state = run(setupGame(), { type: "SET_GAME_CONFIG", config: WITH_QUEEN })
     state = run(
       state,
       { type: "ASSIGN_ROLE", playerId: idOf(state, "G"), role: "courtesan" },
@@ -323,7 +337,7 @@ describe("Night 1", () => {
 // ===========================
 describe("Seer", () => {
   function atSeer(): GameState {
-    let state = run(setupGame(), { type: "SET_GAME_CONFIG", config: { ...DEFAULT_GAME_CONFIG, hasBabyWolf: true } })
+    let state = run(setupGame(), { type: "SET_GAME_CONFIG", config: { ...WITH_QUEEN, hasBabyWolf: true } })
     state = run(
       state,
       { type: "ASSIGN_ROLE", playerId: idOf(state, "G"), role: "courtesan" },
@@ -705,7 +719,7 @@ describe("Baby Wolf", () => {
 // ===========================
 describe("New game & settings", () => {
   it("NEW_GAME keeps the players, the role setup and settings", () => {
-    const config: GameConfig = { ...DEFAULT_GAME_CONFIG, wolfCount: 3, hasWizard: false }
+    const config: GameConfig = { ...WITH_QUEEN, wolfCount: 3, hasWizard: false }
     let state = buildGameWithRoles(config)
     state = run(state, { type: "SET_ROLE_NAMES", roleNames: { wolf: "Werewolf" } }, { type: "SET_TIMER_MINUTES", minutes: 5 })
     const names = state.players.map((p) => p.name)
@@ -723,7 +737,7 @@ describe("New game & settings", () => {
 
   it("starting a new game clears the previous game's roles and events", () => {
     let state = run(buildGameWithRoles(), { type: "NEW_GAME" }, { type: "START_ROLE_CONFIG" })
-    state = run(state, { type: "SET_GAME_CONFIG", config: DEFAULT_GAME_CONFIG })
+    state = run(state, { type: "SET_GAME_CONFIG", config: WITH_QUEEN })
     expect(state.currentNight).toBe(1)
     expect(state.wizardSavePotionUsed).toBe(false)
     expect(state.players.every((p) => p.role === null)).toBe(true)
@@ -969,7 +983,7 @@ describe("Game master", () => {
   it("stays for the next game, and only changes before roles are dealt", () => {
     let state = run(setupGame(), { type: "SET_GAME_MASTER", name: "Gourav" }, { type: "START_ROLE_CONFIG" })
     expect(run(state, { type: "SET_GAME_MASTER", name: "Ali" })).toBe(state)
-    state = run(state, { type: "SET_GAME_CONFIG", config: DEFAULT_GAME_CONFIG })
+    state = run(state, { type: "SET_GAME_CONFIG", config: WITH_QUEEN })
     expect(run(state, { type: "SET_GAME_MASTER", name: "Ali" })).toBe(state)
     state = run(state, { type: "NEW_GAME" })
     expect(state.gameMaster).toBe("Gourav")
@@ -1001,11 +1015,11 @@ describe("Hand-over", () => {
 
   it("makes a short, readable link", () => {
     const state = run(setupGame(["Ana", "Ben"]), { type: "SET_GAME_MASTER", name: "Gourav" })
-    expect(handOverLink(state)).toBe("https://werewolf.gourav.io/#players=Ana,Ben&gm=Gourav&roles=2qcws&t=3")
+    expect(handOverLink(state)).toBe("https://werewolf.gourav.io/#players=Ana,Ben&gm=Gourav&roles=2cws&t=3")
   })
 
   it("sends the players, the game master, the roles, the card names and the timer", () => {
-    const config: GameConfig = { ...DEFAULT_GAME_CONFIG, wolfCount: 3, hasBabyWolf: true, hasWizard: false }
+    const config: GameConfig = { ...WITH_QUEEN, wolfCount: 3, hasBabyWolf: true, hasWizard: false }
     const from: GameState = {
       ...run(setupGame(["Ana", "Ben", "Cleo", "Dev", "Eli"]), { type: "SET_GAME_MASTER", name: "Gourav" }),
       gameConfig: config,

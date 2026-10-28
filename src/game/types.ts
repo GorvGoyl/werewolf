@@ -108,7 +108,7 @@ export type GameAction =
 
 export const DEFAULT_GAME_CONFIG: GameConfig = {
   wolfCount: 2,
-  hasQueenWolf: true,
+  hasQueenWolf: false,
   hasBabyWolf: false,
   hasCourtesan: true,
   hasWizard: true,
