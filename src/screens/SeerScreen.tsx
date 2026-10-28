@@ -37,6 +37,7 @@ export function SeerScreen({ state, dispatch }: ScreenProps) {
         state={state}
         dispatch={dispatch}
         role="seer"
+        busy="choosing someone and seeing the answer"
       />
     )
   }

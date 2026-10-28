@@ -564,10 +564,13 @@ describe("Night 2+ flow", () => {
     expect(hasHadTurn(state)).toBe(true)
   })
 
-  it("dead roles are called, do nothing, then close their eyes", () => {
+  it("dead roles open their eyes and hear their question, do nothing, then close their eyes", () => {
     let state = buildGameWithRoles()
     state = run(state, { type: "ELIMINATE_PLAYER", playerId: idOf(state, "G") }, { type: "START_NEXT_NIGHT" })
     expect(state.currentPhase).toEqual({ type: "night_courtesan" })
+    // Like a living role: "open your eyes", then their question
+    state = run(state, { type: "SAID", cue: "nightfall" }, { type: "SAID", cue: "wake" })
+    expect(hasHadTurn(state)).toBe(false)
     state = run(state, { type: "CALL_DEAD_ROLE" })
     expect(state.currentPhase).toEqual({ type: "night_courtesan" })
     expect(state.currentNightEvent.courtesanGuest).toBeNull()

@@ -54,6 +54,7 @@ export function CourtesanScreen({ state, dispatch }: ScreenProps) {
         state={state}
         dispatch={dispatch}
         role="courtesan"
+        busy="choosing a guest"
       />
     )
   }

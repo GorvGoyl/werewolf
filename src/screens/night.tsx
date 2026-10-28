@@ -3,8 +3,8 @@ import { useState } from "react"
 import type { GameState, Role } from "../game/types"
 import { STEP_ROLE, roleName, stepName } from "../game/roles"
 import { getNightSteps, hasHadTurn, hasSaid } from "../game/reducer"
-import type { NightRole } from "../game/script"
-import { closeEyes, nightfallLine, openEyes } from "../game/script"
+import type { AskedRole, NightRole } from "../game/script"
+import { closeEyes, nightQuestion, nightfallLine, openEyes } from "../game/script"
 import type { IconName } from "../components/icons"
 import { ROLE_ICON } from "../components/icons"
 import { ActionBar, Button, Callout, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
@@ -273,11 +273,30 @@ export function CloseEyesStep({
   )
 }
 
-type DeadRoleStepProps = ScreenProps & { role: NightRole }
+type DeadRoleStepProps = ScreenProps & {
+  role: AskedRole
+  // What the living role does after hearing their question, like "choosing a guest"
+  busy: string
+}
 
-// A dead role is still called, so the table can't tell who died: eyes open, a pause, then eyes closed
-export function DeadRoleStep({ state, dispatch, role }: DeadRoleStepProps) {
+// A dead role is called with the same lines as a living one, so the table can't tell who died: eyes
+// open, their question and a pause, then eyes closed, each on its own screen
+export function DeadRoleStep({ state, dispatch, role, busy }: DeadRoleStepProps) {
   const name = roleName(role, state.roleNames)
+  const subtitle = `The ${name} is dead.`
+  if (needsWake(state)) {
+    return (
+      <WakeStep
+        state={state}
+        dispatch={dispatch}
+        role={role}
+        title={name}
+        subtitle={subtitle}
+        tone="mist"
+        muted
+      />
+    )
+  }
   if (hasHadTurn(state)) {
     return (
       <CloseEyesStep
@@ -285,7 +304,7 @@ export function DeadRoleStep({ state, dispatch, role }: DeadRoleStepProps) {
         dispatch={dispatch}
         role={role}
         title={name}
-        subtitle={`The ${name} is dead.`}
+        subtitle={subtitle}
         tone="mist"
         muted
       />
@@ -298,17 +317,17 @@ export function DeadRoleStep({ state, dispatch, role }: DeadRoleStepProps) {
           eyebrow={nightEyebrow(state)}
           icon={ROLE_ICON[role]}
           title={name}
-          subtitle={`The ${name} is dead.`}
+          subtitle={subtitle}
           tone="mist"
           muted
           role={role}
         />
         <ScriptCard
-          lines={[openEyes(state, role)]}
+          lines={[nightQuestion(state, role)]}
           tone="mist"
         />
         <Pretend>
-          Nobody will open their eyes. Wait a few seconds, as if the {name} were choosing, so nobody can tell
+          Nobody will answer. Wait a few seconds, as if the {name} were {busy}, so the table can&apos;t tell
           they&apos;re gone.
         </Pretend>
       </Screen>
@@ -316,7 +335,7 @@ export function DeadRoleStep({ state, dispatch, role }: DeadRoleStepProps) {
         <Button
           tone="mist"
           onClick={() => dispatch({ type: "CALL_DEAD_ROLE" })}>
-          Continue
+          Next
         </Button>
       </ActionBar>
     </>

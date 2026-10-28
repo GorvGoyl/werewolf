@@ -66,7 +66,8 @@ export function RulesGuide({ roleNames: rn, onClose }: Props) {
       </ol>
       <p className="mt-2.5 text-[14px] leading-snug text-mist-400">
         On Night 1 each role opens their eyes first, you tap who they are, then they act like on any other night. Roles
-        nobody has are skipped, and a dead role is still called so the table can&apos;t tell.
+        nobody has are skipped, and a dead role is still called and asked their question, so the table can&apos;t
+        tell.
       </p>
 
       <SectionLabel>Roles</SectionLabel>
