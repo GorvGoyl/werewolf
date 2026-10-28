@@ -9,7 +9,6 @@ import {
   killQuestion,
   nightQuestion,
   nightfallLine,
-  noPotionsLine,
   openEyes,
   saveQuestion,
   voteLine,
@@ -90,11 +89,8 @@ function everyLine(): Read[] {
     ...NIGHT_ROLES.map((role): Read => (s) => openEyes(s, role)),
     ...NIGHT_ROLES.map((role): Read => (s) => closeEyes(s, role)),
     ...ASKED_ROLES.map((role): Read => (s) => nightQuestion(s, role)),
-    (s) => saveQuestion(s, 0),
-    (s) => saveQuestion(s, 1),
-    (s) => saveQuestion(s, 2),
+    saveQuestion,
     killQuestion,
-    noPotionsLine,
     dawnLine,
     (s) => deathsLine(s, []),
     (s) => deathsLine(s, BOTH_DIED),
@@ -121,7 +117,6 @@ describe("Script", () => {
     for (const role of ASKED_ROLES) {
       for (const line of everyWording((s) => nightQuestion(s, role))) expect(line).toContain(CALLED[role])
     }
-    for (const line of everyWording(noPotionsLine)) expect(line).toContain("Wizard")
   })
 
   it("every wording keeps the cue everyone listens for", () => {
@@ -129,9 +124,8 @@ describe("Script", () => {
     for (const line of everyWording(dawnLine)) expect(line).toContain("Everyone, open your eyes")
     for (const line of everyWording((s) => deathsLine(s, BOTH_DIED))) expect(line).toContain("Ana and Ben")
     for (const line of everyWording((s) => votedOutLine(s, "Ana"))) expect(line).toContain("Ana")
-    // The game master points at whoever is dying
-    for (const line of everyWording((s) => saveQuestion(s, 1))) expect(line.toLowerCase()).toContain("this person")
-    for (const line of everyWording((s) => saveQuestion(s, 2))) expect(line.toLowerCase()).toContain("these people")
+    // Read every night: the game master points at whoever is dying, or shakes their head
+    for (const line of everyWording(saveQuestion)) expect(line.toLowerCase()).toContain("this person")
     for (const line of everyWording((s) => winnerLine(s, "village"))) expect(line).toMatch(/^The village wins!/)
     for (const line of everyWording((s) => winnerLine(s, "wolves"))) expect(line).toMatch(/^The wolves win!/)
   })
@@ -216,7 +210,6 @@ describe("Script", () => {
     const roleNames: RoleNames = { wolf: "Loup", seer: "Oracle", wizard: "Witch" }
     for (const line of everyWording((s) => openEyes(s, "wolf"), roleNames)) expect(line).toContain("Loups")
     for (const line of everyWording((s) => nightQuestion(s, "seer"), roleNames)) expect(line).toContain("Oracle")
-    for (const line of everyWording(noPotionsLine, roleNames)) expect(line).toContain("Witch")
     for (const line of everyWording((s) => winnerLine(s, "wolves"), roleNames)) expect(line).toMatch(/^The loups win!/)
 
     const talk = [...everyWording(discussLine, roleNames), ...everyWording((s) => winnerLine(s, "village"), roleNames)]

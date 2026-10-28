@@ -77,17 +77,30 @@ export function NightfallStep({ state, dispatch }: ScreenProps) {
   )
 }
 
+// When nobody will answer, the game master waits anyway, so the table can't tell
+export function Pretend({ children }: { children: ReactNode }) {
+  return (
+    <Callout
+      icon="mask"
+      title="Pretend">
+      {children}
+    </Callout>
+  )
+}
+
 type WakeStepProps = ScreenProps & {
   role: NightRole
   title: string
   subtitle: string
   tone?: Tone
+  // A dead role, called anyway: nobody will open their eyes
+  muted?: boolean
   // What to do before they're called, like tapping a new wolf's shoulder
   hint?: ReactNode
 }
 
 // A role opens their eyes, then the next screen asks them what they do
-export function WakeStep({ state, dispatch, role, title, subtitle, tone = "moon", hint }: WakeStepProps) {
+export function WakeStep({ state, dispatch, role, title, subtitle, tone = "moon", muted = false, hint }: WakeStepProps) {
   return (
     <>
       <Screen>
@@ -97,6 +110,7 @@ export function WakeStep({ state, dispatch, role, title, subtitle, tone = "moon"
           title={title}
           subtitle={subtitle}
           tone={tone}
+          muted={muted}
           role={role}
         />
         {hint}
@@ -104,7 +118,13 @@ export function WakeStep({ state, dispatch, role, title, subtitle, tone = "moon"
           lines={[openEyes(state, role)]}
           tone={tone}
         />
-        <Instruction icon="timer">Wait until their eyes are open</Instruction>
+        {!muted && <Instruction icon="timer">Wait until their eyes are open</Instruction>}
+        {muted && (
+          <Pretend>
+            Nobody will open their eyes. Wait a few seconds anyway, so the table can&apos;t tell the{" "}
+            {roleName(role, state.roleNames)} is gone.
+          </Pretend>
+        )}
       </Screen>
       <ActionBar>
         <Button
@@ -287,12 +307,10 @@ export function DeadRoleStep({ state, dispatch, role }: DeadRoleStepProps) {
           lines={[openEyes(state, role)]}
           tone="mist"
         />
-        <Callout
-          icon="mask"
-          title="Pretend">
+        <Pretend>
           Nobody will open their eyes. Wait a few seconds, as if the {name} were choosing, so nobody can tell
           they&apos;re gone.
-        </Callout>
+        </Pretend>
       </Screen>
       <ActionBar>
         <Button

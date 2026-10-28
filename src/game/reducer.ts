@@ -7,10 +7,10 @@ const UNIQUE_ROLES: Role[] = ["courtesan", "queen_wolf", "baby_wolf", "wizard", 
 const NIGHT_STEPS: NightStep[] = ["night_courtesan", "night_baby_wolf", "night_wolves", "night_wizard", "night_seer"]
 const MAX_SAVED_NAMES = 100
 
-// A dead role's turn: nothing happens. The Baby Wolf and the wolves are never called dead.
+// A dead role's turn: nothing happens. The Baby Wolf and the wolves are never called dead, and a dead
+// Wizard is asked about both potions like a living one (WIZARD_SAVE, WIZARD_KILL).
 const NOTHING_DONE: Partial<Record<NightStep, Partial<NightEvent>>> = {
   night_courtesan: { courtesanGuest: null },
-  night_wizard: { wizardSaved: null, wizardKilled: null },
   night_seer: { seerChecked: null, seerResult: null },
 }
 
@@ -183,6 +183,11 @@ function isAlivePlayer(state: GameState, id: string | null): boolean {
   return state.players.some((p) => p.id === id && p.isAlive)
 }
 
+// Died on an earlier night. One dying tonight is still alive and can use a potion.
+function isWizardDead(state: GameState): boolean {
+  return state.players.some((p) => p.role === "wizard" && !p.isAlive)
+}
+
 export function gameReducer(state: GameState, action: GameAction): GameState {
   const next = reduce(state, action)
   // What the game master has said belongs to one step of the game, so the next step starts afresh
@@ -318,17 +323,15 @@ function reduce(state: GameState, action: GameAction): GameState {
       return { ...state, currentNightEvent: { ...state.currentNightEvent, wolfTarget: action.playerId } }
     }
 
-    // The Wizard answers the save potion first, then the kill potion. A used-up potion's answer is nobody.
+    // The Wizard answers the save potion first, then the kill potion, every night, so the table can't
+    // tell when a potion is gone. A used-up potion's answer is nobody, and so is a dead Wizard's.
     case "WIZARD_SAVE": {
       const event = state.currentNightEvent
       if (phase !== "night_wizard" || hasHadTurn(state) || event.wizardSaved !== undefined) return state
-      const saveId = state.wizardSavePotionUsed ? null : action.playerId
-      const answer: Partial<NightEvent> = { wizardSaved: saveId }
-      // With the kill potion gone there's nothing left to ask
-      if (state.wizardKillPotionUsed) answer.wizardKilled = null
+      const saveId = state.wizardSavePotionUsed || isWizardDead(state) ? null : action.playerId
       return {
         ...state,
-        currentNightEvent: { ...event, ...answer },
+        currentNightEvent: { ...event, wizardSaved: saveId },
         wizardSavePotionUsed: state.wizardSavePotionUsed || saveId !== null,
       }
     }
@@ -336,7 +339,7 @@ function reduce(state: GameState, action: GameAction): GameState {
     case "WIZARD_KILL": {
       const event = state.currentNightEvent
       if (phase !== "night_wizard" || hasHadTurn(state)) return state
-      const killId = state.wizardKillPotionUsed ? null : action.playerId
+      const killId = state.wizardKillPotionUsed || isWizardDead(state) ? null : action.playerId
       return {
         ...state,
         currentNightEvent: { ...event, wizardSaved: event.wizardSaved ?? null, wizardKilled: killId },

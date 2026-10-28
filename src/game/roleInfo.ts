@@ -85,10 +85,11 @@ export function roleInfo(role: Role, rn: RoleNames): RoleInfo {
       summary: "Has two potions, each usable once per game: one saves a life, one takes one.",
       wakes: `Wakes up after the ${wolves}, every night`,
       details: [
-        "You point at who is dying tonight, and they can save one of them",
+        "You point at who is dying tonight (or shake your head if nobody is), and they can save one of them",
         `Saving the attacked ${courtesan} saves her guest too`,
         "Can poison any other player",
         `If the ${wizard} is dying tonight, they can still use a potion`,
+        "You ask about both potions every night, even once they're used up, so the table can't tell",
       ],
     },
     seer: {

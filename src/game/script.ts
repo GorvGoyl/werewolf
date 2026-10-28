@@ -201,35 +201,18 @@ const NIGHT_QUESTION: Record<AskedRole, string[]> = {
   ],
 }
 
-// The Wizard's save potion, by how many are dying. The game master points at them.
-const SAVE_QUESTION = {
-  nobody: [
-    "Nobody is dying tonight.",
-    "Good news: nobody is dying tonight.",
-    "Nobody is dying tonight. Your save potion can wait.",
-    "A quiet night. Nobody is dying.",
-    "Nobody is dying tonight. Lucky village.",
-    "No one needs saving tonight.",
-  ],
-  one: [
-    "This person is dying tonight. Do you want to save them?",
-    "This person won't survive the night. Do you want to save them?",
-    "Tonight, this person dies. Do you want to save them?",
-    "This person is dying tonight. Will you use your save potion?",
-    "This person won't see the morning. Do you want to save them?",
-    "This person is about to die. Do you want to save them?",
-    "This person is dying tonight. Save them, or let them go?",
-  ],
-  several: [
-    "These people are dying tonight. Do you want to save one of them?",
-    "These people won't survive the night. Do you want to save one of them?",
-    "Tonight, these people die. Do you want to save one of them?",
-    "These people are dying tonight. Will you use your save potion on one of them?",
-    "These people won't see the morning. Do you want to save one of them?",
-    "These people are about to die. Do you want to save one of them?",
-    "These people are dying tonight. Save one, or let them go?",
-  ],
-}
+// The Wizard hears both potions' questions every night, the same way, so the table can't tell when
+// nobody is dying, a potion is used up or the Wizard is dead. While reading the save potion's, the
+// game master points at whoever is dying, or shakes their head when nobody is.
+const SAVE_QUESTION = [
+  "This person is dying tonight. Do you want to save them?",
+  "This person won't survive the night. Do you want to save them?",
+  "Tonight, this person dies. Do you want to save them?",
+  "This person is dying tonight. Will you use your save potion?",
+  "This person won't see the morning. Do you want to save them?",
+  "This person is about to die. Do you want to save them?",
+  "This person is dying tonight. Save them, or let them go?",
+]
 
 const KILL_QUESTION = [
   "Do you want to use your kill potion on anyone?",
@@ -239,18 +222,7 @@ const KILL_QUESTION = [
   "And your kill potion: does anyone deserve it tonight?",
   "Do you want to poison someone? Point at them.",
   "Is there anyone you'd like to get rid of?",
-  "Your kill potion is ready. Want to use it?",
   "Do you want to use your kill potion? Now's your chance.",
-]
-
-const NO_POTIONS = [
-  "{role}, you have no potions left.",
-  "{role}, you're out of potions.",
-  "{role}, your potions are all used up.",
-  "{role}, you're out of potions. Enjoy the night off.",
-  "{role}, your shelf is empty. No potions left.",
-  "{role}, your potions are gone. You can rest tonight.",
-  "{role}, no potions left. You're one of the crowd now.",
 ]
 
 const DAWN = [
@@ -488,18 +460,12 @@ export function nightQuestion(state: GameState, role: AskedRole): string {
   return say(state, `ask:${role}`, NIGHT_QUESTION[role], state.currentNight, { role: name })
 }
 
-export function saveQuestion(state: GameState, dying: number): string {
-  if (dying === 0) return say(state, "save:nobody", SAVE_QUESTION.nobody, state.currentNight)
-  if (dying === 1) return say(state, "save:one", SAVE_QUESTION.one, state.currentNight)
-  return say(state, "save:several", SAVE_QUESTION.several, state.currentNight)
+export function saveQuestion(state: GameState): string {
+  return say(state, "save", SAVE_QUESTION, state.currentNight)
 }
 
 export function killQuestion(state: GameState): string {
   return say(state, "kill", KILL_QUESTION, state.currentNight)
-}
-
-export function noPotionsLine(state: GameState): string {
-  return say(state, "no_potions", NO_POTIONS, state.currentNight, { role: roleName("wizard", state.roleNames) })
 }
 
 // Everyone wakes up, then hears who died

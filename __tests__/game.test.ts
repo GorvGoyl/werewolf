@@ -709,17 +709,36 @@ describe("Wizard potions", () => {
     expect(hasHadTurn(state)).toBe(true)
   })
 
-  it("only asks about the potions that are left", () => {
+  it("asks about both potions every night, even once they're used up", () => {
     let state = atWizard(buildGameWithRoles())
-    state = { ...state, wizardSavePotionUsed: true }
-    state = run(state, { type: "WIZARD_KILL", playerId: null })
+    state = { ...state, wizardSavePotionUsed: true, wizardKillPotionUsed: true }
+    state = run(state, { type: "WIZARD_SAVE", playerId: idOf(state, "ali") })
+    expect(state.currentNightEvent.wizardSaved).toBeNull()
+    // The kill potion's question still comes
+    expect(hasHadTurn(state)).toBe(false)
+    state = run(state, { type: "WIZARD_KILL", playerId: idOf(state, "maud") })
     expect(state.currentNightEvent).toMatchObject({ wizardSaved: null, wizardKilled: null })
     expect(hasHadTurn(state)).toBe(true)
+  })
 
-    state = atWizard(buildGameWithRoles())
-    state = { ...state, wizardKillPotionUsed: true }
-    state = run(state, { type: "WIZARD_SAVE", playerId: null })
+  it("asks a dead Wizard both questions too, and nothing comes of them", () => {
+    let state = buildGameWithRoles()
+    state = atWizard(run(state, { type: "ELIMINATE_PLAYER", playerId: idOf(state, "ha") }))
+    // Not skipped like other dead roles
+    expect(run(state, { type: "CALL_DEAD_ROLE" })).toBe(state)
+    state = run(state, { type: "WIZARD_SAVE", playerId: idOf(state, "ali") })
+    expect(state.currentNightEvent.wizardSaved).toBeNull()
+    expect(hasHadTurn(state)).toBe(false)
+    state = run(state, { type: "WIZARD_KILL", playerId: idOf(state, "maud") })
+    expect(state.currentNightEvent.wizardKilled).toBeNull()
     expect(hasHadTurn(state)).toBe(true)
+
+    state = run(state, NEXT, NEXT)
+    expect(state.currentPhase).toEqual({ type: "night_results" })
+    expect(byName(state, "ali").isAlive).toBe(false)
+    expect(byName(state, "maud").isAlive).toBe(true)
+    expect(state.wizardSavePotionUsed).toBe(false)
+    expect(state.wizardKillPotionUsed).toBe(false)
   })
 })
 
