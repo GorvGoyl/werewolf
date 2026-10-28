@@ -1,5 +1,9 @@
 import type { ReactNode } from "react"
+import { useRef } from "react"
+import { cx } from "../lib/cx"
+import { useOverflows } from "../lib/useOverflows"
 import type { IconName } from "./icons"
+import { Icon } from "./icons"
 import { BottomSheet, Button, IconTile } from "./ui"
 
 type Props = {
@@ -17,7 +21,8 @@ type Props = {
   onCopyState: () => void
 }
 
-// Everything besides playing, at the bottom of the screen where the thumb is
+// Everything besides playing, at the bottom of the screen where the thumb is. The next game comes
+// first, then this game's secrets, then help and settings.
 export function Menu({
   inGame,
   installed,
@@ -32,70 +37,100 @@ export function Menu({
   onHandOver,
   onCopyState,
 }: Props) {
+  const listRef = useRef<HTMLDivElement>(null)
+  const scrolls = useOverflows(listRef)
   return (
     <BottomSheet
       label="Menu"
       onClose={onClose}>
-      <MenuItem
-        icon="book"
-        hint="The rules, and a link to send your players"
-        onClick={onOpenRules}>
-        How to play
-      </MenuItem>
-      <MenuItem
-        icon="pencil"
-        onClick={onOpenRoleNames}>
-        Rename roles
-      </MenuItem>
-      {inGame && (
+      {/* On a short screen the menu scrolls, starting from the top, and dragging its top still closes it */}
+      <div
+        ref={listRef}
+        onPointerDown={(event) => {
+          if (scrolls) event.stopPropagation()
+        }}
+        className={cx(
+          "max-h-[calc(100dvh-4.5rem-env(safe-area-inset-top))] overflow-y-auto overscroll-contain",
+          scrolls && "touch-pan-y",
+          !scrolls && "touch-none",
+        )}>
+        {/* Before the first night there's no game to end: the game master is chosen on the screen */}
+        {inGame && (
+          <MenuItem
+            icon="restart"
+            hint="Same players, new roles"
+            onClick={onNewGame}>
+            New game
+          </MenuItem>
+        )}
+        {canHandOver && (
+          <MenuItem
+            icon="handOver"
+            hint="Someone else runs the next game"
+            onClick={onHandOver}>
+            Hand over to another phone
+          </MenuItem>
+        )}
+        {(inGame || canHandOver) && <Divider />}
+        {inGame && (
+          <>
+            <MenuItem
+              icon="cards"
+              hint="Who has which card, for your eyes only"
+              onClick={onOpenRoles}>
+              Everyone&apos;s roles
+            </MenuItem>
+            <MenuItem
+              icon="timeline"
+              hint="Every night and day so far"
+              onClick={onOpenHistory}>
+              What happened
+            </MenuItem>
+            <Divider />
+          </>
+        )}
         <MenuItem
-          icon="cards"
-          onClick={onOpenRoles}>
-          Everyone&apos;s roles
+          icon="book"
+          hint="The rules, and a link to send your players"
+          onClick={onOpenRules}>
+          How to play
         </MenuItem>
-      )}
-      {inGame && (
         <MenuItem
-          icon="timeline"
-          hint="Every night and day so far"
-          onClick={onOpenHistory}>
-          What happened
+          icon="pencil"
+          hint="Match the names on your cards"
+          onClick={onOpenRoleNames}>
+          Rename roles
         </MenuItem>
-      )}
-      {!installed && (
-        <MenuItem
-          icon="install"
-          hint="Home screen icon, works offline"
-          onClick={onInstall}>
-          Install app
-        </MenuItem>
-      )}
-      <div className="mx-2.5 my-1.5 border-t border-white/5" />
-      <MenuItem
-        icon="restart"
-        hint="Same players, new roles"
-        onClick={onNewGame}>
-        New game
-      </MenuItem>
-      {canHandOver && (
-        <MenuItem
-          icon="handOver"
-          hint="Someone else runs the next game on their phone"
-          onClick={onHandOver}>
-          Hand over to another phone
-        </MenuItem>
-      )}
-      <MenuItem
-        icon="copy"
-        hint="For bug reports"
-        onClick={onCopyState}>
-        Copy game data
-      </MenuItem>
+        {!installed && (
+          <MenuItem
+            icon="install"
+            hint="Home screen icon, works offline"
+            onClick={onInstall}>
+            Install app
+          </MenuItem>
+        )}
+        <Divider />
+        {/* Only for bug reports, so it stays small */}
+        <button
+          type="button"
+          onClick={onCopyState}
+          className="mx-auto mb-1 flex min-h-11 w-fit items-center gap-2 rounded-full px-4 text-[14px] font-semibold text-mist-400 active:bg-white/5">
+          <Icon
+            name="copy"
+            className="size-6"
+          />
+          Copy game data for a bug report
+        </button>
+      </div>
     </BottomSheet>
   )
 }
 
-type MenuItemProps = { icon: IconName; hint?: string; onClick: () => void; children: ReactNode }
+function Divider() {
+  return <div className="mx-2.5 my-1.5 border-t border-white/5" />
+}
+
+type MenuItemProps = { icon: IconName; hint: string; onClick: () => void; children: ReactNode }
 
 function MenuItem({ icon, hint, onClick, children }: MenuItemProps) {
   return (
@@ -109,7 +144,7 @@ function MenuItem({ icon, hint, onClick, children }: MenuItemProps) {
       />
       <span className="min-w-0 flex-1">
         <span className="block text-[17px] font-semibold text-mist-100">{children}</span>
-        {hint && <span className="block text-[13px] text-mist-400">{hint}</span>}
+        <span className="block text-[13px] text-mist-400">{hint}</span>
       </span>
     </button>
   )

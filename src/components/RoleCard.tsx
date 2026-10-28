@@ -1,10 +1,11 @@
-import type { ReactNode, RefObject } from "react"
-import { useLayoutEffect, useRef, useState } from "react"
+import type { ReactNode } from "react"
+import { useRef, useState } from "react"
 import type { Role, RoleNames } from "../game/types"
 import { roleName } from "../game/roles"
 import { TEAM_LABEL, roleInfo } from "../game/roleInfo"
 import type { RoleChoice } from "../lib/useShowRole"
 import { cx } from "../lib/cx"
+import { useOverflows } from "../lib/useOverflows"
 import type { IconName } from "./icons"
 import { ROLE_ICON } from "./icons"
 import type { Tone } from "./ui"
@@ -128,19 +129,4 @@ function Fact({ icon, tone, children }: FactProps) {
       <span>{children}</span>
     </div>
   )
-}
-
-// Whether the content is taller than the element, which changes when the phone turns
-function useOverflows(ref: RefObject<HTMLElement | null>): boolean {
-  const [overflows, setOverflows] = useState(false)
-  useLayoutEffect(() => {
-    const element = ref.current
-    if (!element) return
-    const measure = () => setOverflows(element.scrollHeight > element.clientHeight)
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [ref])
-  return overflows
 }
