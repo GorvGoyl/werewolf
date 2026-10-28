@@ -3,7 +3,7 @@ import type { GameAction, GameState, Role } from "./game/types"
 import { gameReducer, hasHadTurn, isNightStep, keepSettings, sameName } from "./game/reducer"
 import { eliminatedToday, isGameRunning } from "./game/selectors"
 import type { Boot } from "./game/storage"
-import { MAX_HISTORY, saveHistory, saveState } from "./game/storage"
+import { MAX_HISTORY, guideLink, saveHistory, saveState } from "./game/storage"
 import { Header } from "./components/Header"
 import { Menu, NewGameSheet } from "./components/Menu"
 import { GameMasterSheet } from "./components/GameMasterSheet"
@@ -217,11 +217,15 @@ export function App({ boot }: Props) {
         if (error instanceof DOMException && error.name === "AbortError") return
       }
     }
+    await copyLink(link)
+  }
+
+  async function copyLink(link: string) {
     try {
       await navigator.clipboard.writeText(link)
       flash("Link copied")
     } catch {
-      flash("Couldn't share the link")
+      flash("Couldn't copy the link")
     }
   }
 
@@ -317,6 +321,8 @@ export function App({ boot }: Props) {
         {overlay === "rules" && (
           <RulesGuide
             roleNames={state.roleNames}
+            onCopyLink={() => void copyLink(guideLink(state.roleNames))}
+            onShareLink={() => void shareLink(guideLink(state.roleNames))}
             onClose={closeOverlay}
           />
         )}

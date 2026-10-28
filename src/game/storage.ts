@@ -242,6 +242,32 @@ const ROLE_FLAGS: Array<[keyof Omit<GameConfig, "wolfCount">, string]> = [
   ["hasSeer", "s"],
 ]
 
+// What the cards are called, like wolf:Loup;seer:Oracle
+function encodeCards(roleNames: RoleNames): string {
+  return Object.entries(roleNames)
+    .map(([role, name]) => `${role}:${encodeURIComponent(name)}`)
+    .join(";")
+}
+
+// Throws on a broken % escape
+function decodeCards(text: string): RoleNames {
+  const cards: Record<string, string> = {}
+  for (const entry of text.split(";")) {
+    const at = entry.indexOf(":")
+    if (at > 0) cards[entry.slice(0, at)] = decodeURIComponent(entry.slice(at + 1))
+  }
+  return sanitizeRoleNames(cards)
+}
+
+function hashFields(hash: string): Map<string, string> {
+  const fields = new Map<string, string>()
+  for (const part of hash.slice(1).split("&")) {
+    const at = part.indexOf("=")
+    if (at > 0) fields.set(part.slice(0, at), part.slice(at + 1))
+  }
+  return fields
+}
+
 // Names are encoded, so the commas, semicolons and colons between them are unambiguous
 export function handOverLink(state: GameState): string {
   const config = state.gameConfig
@@ -249,19 +275,15 @@ export function handOverLink(state: GameState): string {
   const parts = [`players=${state.players.map((p) => encodeURIComponent(p.name)).join(",")}`]
   if (state.gameMaster) parts.push(`gm=${encodeURIComponent(state.gameMaster)}`)
   parts.push(`roles=${config.wolfCount}${flags.join("")}`)
-  const cards = Object.entries(state.roleNames).map(([role, name]) => `${role}:${encodeURIComponent(name)}`)
-  if (cards.length > 0) parts.push(`cards=${cards.join(";")}`)
+  const cards = encodeCards(state.roleNames)
+  if (cards) parts.push(`cards=${cards}`)
   parts.push(`t=${state.timerMinutes}`)
   return `${HOME_URL}#${parts.join("&")}`
 }
 
 export function readHandOver(hash: string): HandOver | null {
   if (!hash.startsWith("#players=")) return null
-  const fields = new Map<string, string>()
-  for (const part of hash.slice(1).split("&")) {
-    const at = part.indexOf("=")
-    if (at > 0) fields.set(part.slice(0, at), part.slice(at + 1))
-  }
+  const fields = hashFields(hash)
   try {
     const decode = (text: string) => normalizeName(decodeURIComponent(text))
     const players = (fields.get("players") ?? "").split(",").map(decode).filter(Boolean)
@@ -276,23 +298,43 @@ export function readHandOver(hash: string): HandOver | null {
       gameConfig = sanitizeConfig(config)
     }
 
-    const cards: Record<string, string> = {}
-    for (const entry of (fields.get("cards") ?? "").split(";")) {
-      const at = entry.indexOf(":")
-      if (at > 0) cards[entry.slice(0, at)] = decodeURIComponent(entry.slice(at + 1))
-    }
-
+    const roleNames = decodeCards(fields.get("cards") ?? "")
     const minutes = Number(fields.get("t"))
     return {
       players,
       gameMaster,
       gameConfig,
-      roleNames: sanitizeRoleNames(cards),
+      roleNames,
       timerMinutes: Number.isInteger(minutes) ? Math.min(15, Math.max(1, minutes)) : 3,
     }
   } catch {
     // A broken % escape: not a link this app made
     return null
+  }
+}
+
+// How to play has a page of its own, for sending to the players before game night. It reads
+// nothing from the phone that opens it. Card names that differ from the standard ones ride after
+// the #, so the guide calls every role what this group's cards say.
+//   https://werewolf.gourav.io/how-to-play#cards=wizard:Witch
+const GUIDE_PATH = "how-to-play"
+
+// The page also answers at /how-to-play.html and with a trailing slash
+export function isGuidePath(pathname: string): boolean {
+  return /^\/how-to-play(\.html|\/)?$/.test(pathname)
+}
+
+export function guideLink(roleNames: RoleNames): string {
+  const cards = encodeCards(roleNames)
+  if (!cards) return `${HOME_URL}${GUIDE_PATH}`
+  return `${HOME_URL}${GUIDE_PATH}#cards=${cards}`
+}
+
+export function readGuideCards(hash: string): RoleNames {
+  try {
+    return decodeCards(hashFields(hash).get("cards") ?? "")
+  } catch {
+    return {}
   }
 }
 

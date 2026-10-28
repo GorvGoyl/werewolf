@@ -38,6 +38,7 @@ export function Menu({
       onClose={onClose}>
       <MenuItem
         icon="book"
+        hint="The rules, and a link to send your players"
         onClick={onOpenRules}>
         How to play
       </MenuItem>

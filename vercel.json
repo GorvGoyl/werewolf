@@ -1,4 +1,8 @@
 {
+  "rewrites": [
+    { "source": "/how-to-play", "destination": "/how-to-play.html" },
+    { "source": "/how-to-play/", "destination": "/how-to-play.html" }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",

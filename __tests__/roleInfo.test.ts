@@ -17,7 +17,8 @@ const RENAMED: RoleNames = {
 function everyLine(rn: RoleNames): string[] {
   return ROLE_ORDER.flatMap((role) => {
     const info = roleInfo(role, rn)
-    return [info.blurb, info.summary, info.wakes, info.goal, ...info.details]
+    const player = [info.player.does, ...info.player.rules, info.player.tip]
+    return [info.blurb, info.summary, info.wakes, info.goal, ...info.details, ...player]
   })
 }
 
@@ -29,6 +30,14 @@ describe("Role cards", () => {
       expect(info.wakes).toMatch(/wakes up/i)
       expect(info.goal).toMatch(/^Wins/)
       expect(info.details.length).toBeGreaterThan(0)
+    }
+  })
+
+  it("tell whoever holds the card what to do, with a tip for a first game", () => {
+    for (const role of ROLE_ORDER) {
+      const { player } = roleInfo(role, {})
+      expect(player.does).toMatch(/\byou/i)
+      expect(player.tip).not.toBe("")
     }
   })
 
