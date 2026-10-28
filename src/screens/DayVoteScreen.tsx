@@ -1,8 +1,9 @@
 import { useState } from "react"
 import type { Player } from "../game/types"
 import { isWolf, roleName } from "../game/roles"
+import { checkWinCondition, hasSaid } from "../game/reducer"
 import { alivePlayers, eliminatedToday, playerName } from "../game/selectors"
-import { dayLines, votedOutLine } from "../game/script"
+import { discussLine, voteLine, votedOutLine } from "../game/script"
 import { ActionBar, Avatar, Button, IconTile, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
 import { Icon, ROLE_ICON, playerIcon } from "../components/icons"
@@ -23,11 +24,52 @@ export function DayVoteScreen({ state, dispatch }: ScreenProps) {
       />
     )
   }
+  // The village talks first, then votes on a screen of its own
+  if (!hasSaid(state, "discuss")) {
+    return (
+      <Discussion
+        state={state}
+        dispatch={dispatch}
+      />
+    )
+  }
   return (
     <DayVote
       state={state}
       dispatch={dispatch}
     />
+  )
+}
+
+function Discussion({ state, dispatch }: ScreenProps) {
+  return (
+    <>
+      <Screen>
+        <ScreenTitle
+          eyebrow={`Day ${state.currentDay}`}
+          icon="users"
+          title="Discussion"
+          subtitle={`${alivePlayers(state).length} players alive`}
+          tone="sun"
+        />
+        <ScriptCard
+          lines={[discussLine(state)]}
+          tone="sun"
+        />
+        <DayTimer
+          minutes={state.timerMinutes}
+          onMinutesChange={(minutes) => dispatch({ type: "SET_TIMER_MINUTES", minutes })}
+        />
+      </Screen>
+      <ActionBar>
+        <Button
+          tone="sun"
+          icon="vote"
+          onClick={() => dispatch({ type: "SAID", cue: "discuss" })}>
+          Start the vote
+        </Button>
+      </ActionBar>
+    </>
   )
 }
 
@@ -45,12 +87,8 @@ function DayVote({ state, dispatch }: ScreenProps) {
           subtitle={`${alive.length} players alive`}
           tone="sun"
         />
-        <DayTimer
-          minutes={state.timerMinutes}
-          onMinutesChange={(minutes) => dispatch({ type: "SET_TIMER_MINUTES", minutes })}
-        />
         <ScriptCard
-          lines={dayLines(state)}
+          lines={[voteLine(state)]}
           tone="sun"
         />
         <Instruction>Tap the player voted out</Instruction>
@@ -89,6 +127,7 @@ type DayResultProps = ScreenProps & { player: Player }
 function DayResult({ state, dispatch, player }: DayResultProps) {
   const showRole = useShowRole()
   const wolf = isWolf(player.role)
+  const won = checkWinCondition(state.players) !== null
   const role = cardRole(state, player) ?? "villager"
   return (
     <>
@@ -147,11 +186,21 @@ function DayResult({ state, dispatch, player }: DayResultProps) {
         />
       </Screen>
       <ActionBar>
-        <Button
-          icon="moon"
-          onClick={() => dispatch({ type: "START_NEXT_NIGHT" })}>
-          Start Night {state.currentNight + 1}
-        </Button>
+        {/* A vote that ended the game goes on to the winner */}
+        {won && (
+          <Button
+            icon="trophy"
+            onClick={() => dispatch({ type: "START_NEXT_NIGHT" })}>
+            See who won
+          </Button>
+        )}
+        {!won && (
+          <Button
+            icon="moon"
+            onClick={() => dispatch({ type: "START_NEXT_NIGHT" })}>
+            Start Night {state.currentNight + 1}
+          </Button>
+        )}
       </ActionBar>
     </>
   )

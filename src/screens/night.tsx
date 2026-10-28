@@ -2,7 +2,7 @@ import type { ReactNode } from "react"
 import { useState } from "react"
 import type { GameState, Role } from "../game/types"
 import { STEP_ROLE, roleName, stepName } from "../game/roles"
-import { getNightSteps, hasHadTurn } from "../game/reducer"
+import { getNightSteps, hasHadTurn, hasSaid } from "../game/reducer"
 import type { NightRole } from "../game/script"
 import { closeEyes, nightfallLine, openEyes } from "../game/script"
 import type { IconName } from "../components/icons"
@@ -12,11 +12,17 @@ import type { Tone } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
 import type { ScreenProps } from "./props"
 
-// Lines that open the night, on the first screen the GM sees
-export function nightfall(state: GameState, firstScreenOfStep: boolean): string[] {
+// Every line the game master reads gets a screen of its own, and the game moves on once the table
+// has done what it said: the night starts with everyone closing their eyes...
+export function needsNightfall(state: GameState): boolean {
   const first = getNightSteps(state)[0] === state.currentPhase.type
-  if (first && firstScreenOfStep) return [nightfallLine(state)]
-  return []
+  return first && !hasSaid(state, "nightfall") && !hasHadTurn(state)
+}
+
+// ...and from Night 2 on, each role's turn starts with "open your eyes". On Night 1 they open their
+// eyes to be identified instead.
+export function needsWake(state: GameState): boolean {
+  return state.currentNight > 1 && !hasSaid(state, "wake") && !hasHadTurn(state)
 }
 
 // Who wakes up after this step, or dawn after the last one
@@ -44,6 +50,71 @@ export function NextStepButton({ state, dispatch, tone = "moon" }: NextStepButto
 
 export function nightEyebrow(state: GameState): string {
   return `Night ${state.currentNight}`
+}
+
+// Night falls: everyone closes their eyes before the first role wakes up
+export function NightfallStep({ state, dispatch }: ScreenProps) {
+  const first = getNightSteps(state)[0]
+  return (
+    <>
+      <Screen>
+        <ScreenTitle
+          eyebrow={nightEyebrow(state)}
+          icon="moon"
+          title="Night falls"
+        />
+        <ScriptCard lines={[nightfallLine(state)]} />
+        <Instruction icon="timer">Wait until everyone&apos;s eyes are closed</Instruction>
+      </Screen>
+      <ActionBar>
+        <Button
+          icon={ROLE_ICON[STEP_ROLE[first]]}
+          onClick={() => dispatch({ type: "SAID", cue: "nightfall" })}>
+          Next: {stepName(first, state.roleNames)}
+        </Button>
+      </ActionBar>
+    </>
+  )
+}
+
+type WakeStepProps = ScreenProps & {
+  role: NightRole
+  title: string
+  subtitle: string
+  tone?: Tone
+  // What to do before they're called, like tapping a new wolf's shoulder
+  hint?: ReactNode
+}
+
+// A role opens their eyes, then the next screen asks them what they do
+export function WakeStep({ state, dispatch, role, title, subtitle, tone = "moon", hint }: WakeStepProps) {
+  return (
+    <>
+      <Screen>
+        <ScreenTitle
+          eyebrow={nightEyebrow(state)}
+          icon={ROLE_ICON[role]}
+          title={title}
+          subtitle={subtitle}
+          tone={tone}
+          role={role}
+        />
+        {hint}
+        <ScriptCard
+          lines={[openEyes(state, role)]}
+          tone={tone}
+        />
+        <Instruction icon="timer">Wait until their eyes are open</Instruction>
+      </Screen>
+      <ActionBar>
+        <Button
+          tone={tone}
+          onClick={() => dispatch({ type: "SAID", cue: "wake" })}>
+          Next
+        </Button>
+      </ActionBar>
+    </>
+  )
 }
 
 type IdentifyStepProps = ScreenProps & {
@@ -168,6 +239,8 @@ export function CloseEyesStep({
           lines={[closeEyes(state, role)]}
           tone={tone}
         />
+        {/* A dead role has nobody to wait for */}
+        {!muted && <Instruction icon="timer">Wait until their eyes are closed</Instruction>}
       </Screen>
       <ActionBar>
         <NextStepButton
@@ -180,13 +253,10 @@ export function CloseEyesStep({
   )
 }
 
-type DeadRoleStepProps = ScreenProps & {
-  role: NightRole
-  opening: string[]
-}
+type DeadRoleStepProps = ScreenProps & { role: NightRole }
 
 // A dead role is still called, so the table can't tell who died: eyes open, a pause, then eyes closed
-export function DeadRoleStep({ state, dispatch, role, opening }: DeadRoleStepProps) {
+export function DeadRoleStep({ state, dispatch, role }: DeadRoleStepProps) {
   const name = roleName(role, state.roleNames)
   if (hasHadTurn(state)) {
     return (
@@ -214,7 +284,7 @@ export function DeadRoleStep({ state, dispatch, role, opening }: DeadRoleStepPro
           role={role}
         />
         <ScriptCard
-          lines={[...opening, openEyes(state, role)]}
+          lines={[openEyes(state, role)]}
           tone="mist"
         />
         <Callout

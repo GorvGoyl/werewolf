@@ -53,6 +53,11 @@ export type GamePhase =
 
 export type RoleNames = Partial<Record<Role, string>>
 
+// A line the game master reads on its own screen, then waits for the table: everyone closing their
+// eyes at nightfall, a role opening theirs, the Seer seeing the answer, everyone waking at dawn,
+// the village talking before the vote
+export type Cue = "nightfall" | "wake" | "answer" | "dawn" | "discuss"
+
 export type GameState = {
   players: Player[]
   currentPhase: GamePhase
@@ -69,6 +74,8 @@ export type GameState = {
   babyWolfTransformNight: number | null
   // Picks which wording of each line the game master reads (see script.ts). New for every game.
   scriptSeed: number
+  // The lines already read in this step of the game. Each step starts with none.
+  said: Cue[]
   // Who runs the game on this phone. They get no card, so they're never one of the players.
   // A new game keeps them until someone else takes over.
   gameMaster: string | null
@@ -93,9 +100,11 @@ export type GameAction =
   | { type: "IDENTIFY_BABY_WOLF"; playerId: string }
   | { type: "SET_COURTESAN_GUEST"; playerId: string }
   | { type: "SET_WOLF_TARGET"; playerId: string }
-  | { type: "WIZARD_DECIDE"; saveId: string | null; killId: string | null }
+  | { type: "WIZARD_SAVE"; playerId: string | null }
+  | { type: "WIZARD_KILL"; playerId: string | null }
   | { type: "SET_SEER_CHECK"; playerId: string }
   | { type: "CALL_DEAD_ROLE" }
+  | { type: "SAID"; cue: Cue }
   | { type: "SKIP_TO_NEXT_PHASE" }
   | { type: "START_DAY" }
   | { type: "ELIMINATE_PLAYER"; playerId: string }

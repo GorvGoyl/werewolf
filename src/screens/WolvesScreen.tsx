@@ -16,7 +16,15 @@ import { ActionBar, Button, Callout, Instruction, Screen, ScreenTitle, ScriptCar
 import { PlayerGrid } from "../components/PlayerGrid"
 import { ROLE_ICON } from "../components/icons"
 import { asList } from "../lib/cx"
-import { CloseEyesStep, IdentifyStep, nightEyebrow, nightfall } from "./night"
+import {
+  CloseEyesStep,
+  IdentifyStep,
+  NightfallStep,
+  WakeStep,
+  needsNightfall,
+  needsWake,
+  nightEyebrow,
+} from "./night"
 import type { ScreenProps } from "./props"
 
 export function WolvesScreen({ state, dispatch }: ScreenProps) {
@@ -24,6 +32,15 @@ export function WolvesScreen({ state, dispatch }: ScreenProps) {
   const step = getWolvesStep(state)
   const queen = roleName("queen_wolf", rn)
   const wolves = rolePlural("wolf", rn)
+
+  if (needsNightfall(state)) {
+    return (
+      <NightfallStep
+        state={state}
+        dispatch={dispatch}
+      />
+    )
+  }
 
   if (step === "queen") {
     return (
@@ -34,7 +51,7 @@ export function WolvesScreen({ state, dispatch }: ScreenProps) {
         role="queen_wolf"
         title={queen}
         tone="blood"
-        lines={[...nightfall(state, true), openEyes(state, "queen_wolf")]}
+        lines={[openEyes(state, "queen_wolf")]}
         instruction="Tap the player who opened their eyes"
         confirmLabel={([who]) => `${who} is the ${queen}`}
         onConfirm={([id]) => dispatch({ type: "ASSIGN_ROLE", playerId: id, role: "queen_wolf" })}
@@ -44,10 +61,9 @@ export function WolvesScreen({ state, dispatch }: ScreenProps) {
 
   if (step === "pack") {
     const count = getRegularWolfCount(state.gameConfig)
-    const withQueen = state.gameConfig.hasQueenWolf
     let instruction = `Tap the ${count} ${wolves.toLowerCase()}`
     if (count === 1) instruction = `Tap the ${roleName("wolf", rn).toLowerCase()}`
-    if (withQueen) instruction = `${instruction} (not the ${queen})`
+    if (state.gameConfig.hasQueenWolf) instruction = `${instruction} (not the ${queen})`
     return (
       <IdentifyStep
         key="identify-pack"
@@ -57,7 +73,7 @@ export function WolvesScreen({ state, dispatch }: ScreenProps) {
         title={wolves}
         tone="blood"
         count={count}
-        lines={[...nightfall(state, !withQueen), openEyes(state, "wolf")]}
+        lines={[openEyes(state, "wolf")]}
         instruction={instruction}
         confirmLabel={(names) => packLabel(names, roleName("wolf", rn), wolves)}
         onConfirm={(ids) => dispatch({ type: "ASSIGN_WOLVES", playerIds: ids })}
@@ -65,15 +81,43 @@ export function WolvesScreen({ state, dispatch }: ScreenProps) {
     )
   }
 
+  const pack = alivePlayers(state).filter((p) => isWolf(p.role))
+  const packNames = joinNames(pack.map((p) => p.name))
+
+  if (needsWake(state)) {
+    const joining = babyWolfJoinsTonight(state)
+    const babyName = roleName("baby_wolf", rn)
+    return (
+      <WakeStep
+        state={state}
+        dispatch={dispatch}
+        role="wolf"
+        title={wolves}
+        subtitle={`${packNames} wake up.`}
+        tone="blood"
+        hint={
+          joining && (
+            <Callout
+              tone="sun"
+              icon={ROLE_ICON.baby_wolf}
+              title={`${joining.name} joins the pack tonight`}>
+              The {babyName} was bitten last night. Tap {joining.name}&apos;s shoulder before you wake the{" "}
+              {wolves.toLowerCase()}, so they open their eyes too.
+            </Callout>
+          )
+        }
+      />
+    )
+  }
+
   if (hasHadTurn(state)) {
-    const pack = alivePlayers(state).filter((p) => isWolf(p.role))
     return (
       <CloseEyesStep
         state={state}
         dispatch={dispatch}
         role="wolf"
         title={wolves}
-        subtitle={`${joinNames(pack.map((p) => p.name))} picked ${playerName(state, state.currentNightEvent.wolfTarget)}.`}
+        subtitle={`${packNames} picked ${playerName(state, state.currentNightEvent.wolfTarget)}.`}
         tone="blood"
       />
     )
@@ -113,14 +157,6 @@ function WolvesAttack({ state, dispatch }: ScreenProps) {
   const babyUnbitten = baby?.isAlive && baby.role === "baby_wolf"
   if (baby && babyUnbitten) notes[baby.id] = babyName
 
-  const joining = babyWolfJoinsTonight(state)
-
-  // On Night 1 the pack already opened their eyes to be identified
-  const awake = state.currentNight > 1
-  const lines = nightfall(state, awake)
-  if (awake) lines.push(openEyes(state, "wolf"))
-  lines.push(nightQuestion(state, "wolf"))
-
   return (
     <>
       <Screen>
@@ -132,17 +168,8 @@ function WolvesAttack({ state, dispatch }: ScreenProps) {
           tone="blood"
           role="wolf"
         />
-        {joining && (
-          <Callout
-            tone="sun"
-            icon={ROLE_ICON.baby_wolf}
-            title={`${joining.name} joins the pack tonight`}>
-            The {babyName} was bitten last night. Tap {joining.name}&apos;s shoulder before you wake the{" "}
-            {wolves.toLowerCase()}, so they open their eyes too.
-          </Callout>
-        )}
         <ScriptCard
-          lines={lines}
+          lines={[nightQuestion(state, "wolf")]}
           tone="blood"
         />
         <Instruction>Tap the player they point at</Instruction>

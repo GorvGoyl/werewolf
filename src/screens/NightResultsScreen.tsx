@@ -1,5 +1,6 @@
 import type { Death, GameState } from "../game/types"
 import { roleName } from "../game/roles"
+import { checkWinCondition, hasSaid } from "../game/reducer"
 import {
   aliveWolves,
   alivePlayers,
@@ -8,13 +9,14 @@ import {
   protectedGuestOf,
 } from "../game/selectors"
 import { causeText } from "../game/text"
-import { dawnLines } from "../game/script"
+import { dawnLine, deathsLine } from "../game/script"
 import {
   ActionBar,
   Avatar,
   Button,
   Callout,
   IconTile,
+  Instruction,
   Screen,
   ScreenTitle,
   ScriptCard,
@@ -40,10 +42,21 @@ export function NightResultsScreen({ state, dispatch }: ScreenProps) {
 
   if (!night) return null
 
+  // Everyone opens their eyes before hearing who died
+  if (!hasSaid(state, "dawn")) {
+    return (
+      <DawnWake
+        state={state}
+        dispatch={dispatch}
+      />
+    )
+  }
+
   const protectedGuest = protectedGuestOf(state, night)
   const saved = getPlayer(state, night.wizardSaved)
   const bitten = bittenBabyWolfOf(state, night)
   const hasSecrets = protectedGuest || saved || bitten
+  const won = checkWinCondition(state.players) !== null
 
   return (
     <>
@@ -55,7 +68,7 @@ export function NightResultsScreen({ state, dispatch }: ScreenProps) {
           tone="sun"
         />
         <ScriptCard
-          lines={dawnLines(state, deaths)}
+          lines={[deathsLine(state, deaths)]}
           tone="sun"
         />
 
@@ -119,11 +132,49 @@ export function NightResultsScreen({ state, dispatch }: ScreenProps) {
         </div>
       </Screen>
       <ActionBar>
+        {/* A night that ended the game goes on to the winner */}
+        {won && (
+          <Button
+            tone="sun"
+            icon="trophy"
+            onClick={() => dispatch({ type: "START_DAY" })}>
+            See who won
+          </Button>
+        )}
+        {!won && (
+          <Button
+            tone="sun"
+            icon="sun"
+            onClick={() => dispatch({ type: "START_DAY" })}>
+            Start Day {state.currentNight}
+          </Button>
+        )}
+      </ActionBar>
+    </>
+  )
+}
+
+function DawnWake({ state, dispatch }: ScreenProps) {
+  return (
+    <>
+      <Screen>
+        <ScreenTitle
+          eyebrow={`Night ${state.currentNight} is over`}
+          icon="sunrise"
+          title="Dawn"
+          tone="sun"
+        />
+        <ScriptCard
+          lines={[dawnLine(state)]}
+          tone="sun"
+        />
+        <Instruction icon="timer">Wait until everyone&apos;s eyes are open</Instruction>
+      </Screen>
+      <ActionBar>
         <Button
           tone="sun"
-          icon="sun"
-          onClick={() => dispatch({ type: "START_DAY" })}>
-          Start Day {state.currentNight}
+          onClick={() => dispatch({ type: "SAID", cue: "dawn" })}>
+          Next
         </Button>
       </ActionBar>
     </>

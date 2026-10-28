@@ -42,11 +42,11 @@ const NOT_UNDOABLE: Array<GameAction["type"]> = [
   "FORGET_SAVED_NAME",
 ]
 
-// Changes whenever a different screen (or step within one) is shown, like a role's eyes closing
+// Changes whenever a different screen (or step within one) is shown, like each line the game master reads
 function screenKey(state: GameState): string {
   const identified = state.players.filter((p) => p.role !== null).length
-  const turn = hasHadTurn(state)
-  return [state.currentPhase.type, state.currentNight, state.currentDay, identified, turn, eliminatedToday(state).length].join(":")
+  const steps = [identified, hasHadTurn(state), state.said.join("+"), eliminatedToday(state).length]
+  return [state.currentPhase.type, state.currentNight, state.currentDay, ...steps].join(":")
 }
 
 function skyClass(state: GameState): string {

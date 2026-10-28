@@ -1,5 +1,5 @@
-import type { PointerEvent, ReactNode, RefObject } from "react"
-import { useEffect, useRef } from "react"
+import type { MouseEvent, PointerEvent, ReactNode, RefObject } from "react"
+import { useEffect, useLayoutEffect, useRef } from "react"
 import type { Player, Role } from "../game/types"
 import type { Team } from "../game/roles"
 import { cx } from "../lib/cx"
@@ -202,14 +202,14 @@ export function ScriptCard({ lines, tone = "moon" }: ScriptCardProps) {
   )
 }
 
-type InstructionProps = { children: ReactNode; tone?: Tone }
+type InstructionProps = { children: ReactNode; tone?: Tone; icon?: IconName }
 
-// What the game master should tap
-export function Instruction({ children, tone = "sun" }: InstructionProps) {
+// What the game master should tap, or wait for (the hourglass)
+export function Instruction({ children, tone = "sun", icon = "tap" }: InstructionProps) {
   return (
     <p className={cx("mb-3 flex items-center gap-2 text-[16px] font-semibold", TEXT[tone])}>
       <Icon
-        name="tap"
+        name={icon}
         className="size-6"
       />
       <span>{children}</span>
@@ -243,11 +243,30 @@ export function Callout({ tone = "mist", icon, title, children }: CalloutProps) 
 
 type ActionBarProps = { children: ReactNode }
 
-// Thumb-reachable buttons pinned to the bottom of the screen
+// Long enough for a double tap's second tap, too short for anyone reading the new screen
+const SETTLE_MS = 400
+
+// Thumb-reachable buttons pinned to the bottom of the screen. Every step's button sits in the same
+// spot, so a new screen ignores taps for a moment: a double tap won't skip a step.
 export function ActionBar({ children }: ActionBarProps) {
+  const shownAt = useRef(0)
+  useLayoutEffect(() => {
+    shownAt.current = Date.now()
+  }, [])
+
+  function settle(event: MouseEvent) {
+    if (Date.now() - shownAt.current >= SETTLE_MS) return
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-night-950 from-60% to-transparent pt-10">
-      <div className="pb-safe pointer-events-auto mx-auto flex w-full max-w-md flex-col gap-1.5 px-4">{children}</div>
+      <div
+        onClickCapture={settle}
+        className="pb-safe pointer-events-auto mx-auto flex w-full max-w-md flex-col gap-1.5 px-4">
+        {children}
+      </div>
     </div>
   )
 }

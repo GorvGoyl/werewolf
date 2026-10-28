@@ -7,12 +7,30 @@ import { ActionBar, Button, Callout, Instruction, Screen, ScreenTitle, ScriptCar
 import { PlayerGrid } from "../components/PlayerGrid"
 import { ROLE_ICON } from "../components/icons"
 import { asList } from "../lib/cx"
-import { CloseEyesStep, DeadRoleStep, IdentifyStep, nightEyebrow, nightfall } from "./night"
+import {
+  CloseEyesStep,
+  DeadRoleStep,
+  IdentifyStep,
+  NightfallStep,
+  WakeStep,
+  needsNightfall,
+  needsWake,
+  nightEyebrow,
+} from "./night"
 import type { ScreenProps } from "./props"
 
 export function CourtesanScreen({ state, dispatch }: ScreenProps) {
   const name = roleName("courtesan", state.roleNames)
   const courtesan = findRole(state, "courtesan")
+
+  if (needsNightfall(state)) {
+    return (
+      <NightfallStep
+        state={state}
+        dispatch={dispatch}
+      />
+    )
+  }
 
   if (!courtesan) {
     return (
@@ -22,7 +40,7 @@ export function CourtesanScreen({ state, dispatch }: ScreenProps) {
         dispatch={dispatch}
         role="courtesan"
         title={name}
-        lines={[...nightfall(state, true), openEyes(state, "courtesan")]}
+        lines={[openEyes(state, "courtesan")]}
         instruction="Tap the player who opened their eyes"
         confirmLabel={([who]) => `${who} is the ${name}`}
         onConfirm={([id]) => dispatch({ type: "ASSIGN_ROLE", playerId: id, role: "courtesan" })}
@@ -36,7 +54,18 @@ export function CourtesanScreen({ state, dispatch }: ScreenProps) {
         state={state}
         dispatch={dispatch}
         role="courtesan"
-        opening={nightfall(state, true)}
+      />
+    )
+  }
+
+  if (needsWake(state)) {
+    return (
+      <WakeStep
+        state={state}
+        dispatch={dispatch}
+        role="courtesan"
+        title={name}
+        subtitle={`${courtesan.name} wakes up.`}
       />
     )
   }
@@ -79,12 +108,6 @@ function CourtesanInvite({ state, dispatch }: ScreenProps) {
     notes[lastGuest] = "Last night's guest"
   }
 
-  // On Night 1 she already opened her eyes to be identified
-  const awake = state.currentNight > 1
-  const lines = nightfall(state, awake)
-  if (awake) lines.push(openEyes(state, "courtesan"))
-  lines.push(nightQuestion(state, "courtesan"))
-
   return (
     <>
       <Screen>
@@ -95,7 +118,7 @@ function CourtesanInvite({ state, dispatch }: ScreenProps) {
           subtitle={`${courtesan?.name} picks a guest for the night.`}
           role="courtesan"
         />
-        <ScriptCard lines={lines} />
+        <ScriptCard lines={[nightQuestion(state, "courtesan")]} />
         {lastGuest && (
           <Callout
             tone="sun"

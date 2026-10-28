@@ -1,4 +1,4 @@
-import type { GameAction, GamePhase, GameState, NightEvent, NightStep, Player, Role } from "./types"
+import type { Cue, GameAction, GamePhase, GameState, NightEvent, NightStep, Player, Role } from "./types"
 import { DEFAULT_GAME_CONFIG } from "./types"
 import { STEP_ROLE, isWolf, seerSees } from "./roles"
 import { resolveDeaths } from "./deaths"
@@ -30,6 +30,7 @@ export function createInitialState(): GameState {
     babyWolfPlayerId: null,
     babyWolfTransformNight: null,
     scriptSeed: 0,
+    said: [],
     gameMaster: null,
     savedNames: [],
     timerMinutes: 3,
@@ -102,9 +103,13 @@ export function hasHadTurn(state: GameState): boolean {
   if (phase === "night_courtesan") return event.courtesanGuest !== undefined
   if (phase === "night_baby_wolf") return state.babyWolfPlayerId !== null
   if (phase === "night_wolves") return event.wolfTarget !== undefined
-  if (phase === "night_wizard") return event.wizardSaved !== undefined
+  if (phase === "night_wizard") return event.wizardKilled !== undefined
   if (phase === "night_seer") return event.seerChecked !== undefined
   return false
+}
+
+export function hasSaid(state: GameState, cue: Cue): boolean {
+  return state.said.includes(cue)
 }
 
 // The wolves bit the Baby Wolf: they survive and join the pack next night.
@@ -159,8 +164,7 @@ function resolveNight(state: GameState): GameState {
     babyWolfTransformNight: babyWolfBitten ? state.currentNight + 1 : state.babyWolfTransformNight,
   }
 
-  const winPhase = checkWinCondition(updatedPlayers)
-  if (winPhase) return { ...resolved, currentPhase: winPhase }
+  // Even a night that ends the game has its dawn: everyone wakes up and hears who died first
   return { ...resolved, currentPhase: { type: "night_results" } }
 }
 
@@ -180,6 +184,13 @@ function isAlivePlayer(state: GameState, id: string | null): boolean {
 }
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
+  const next = reduce(state, action)
+  // What the game master has said belongs to one step of the game, so the next step starts afresh
+  if (next.currentPhase.type !== state.currentPhase.type && next.said.length > 0) return { ...next, said: [] }
+  return next
+}
+
+function reduce(state: GameState, action: GameAction): GameState {
   const phase = state.currentPhase.type
 
   switch (action.type) {
@@ -307,14 +318,28 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, currentNightEvent: { ...state.currentNightEvent, wolfTarget: action.playerId } }
     }
 
-    case "WIZARD_DECIDE": {
-      if (phase !== "night_wizard" || hasHadTurn(state)) return state
-      const saveId = state.wizardSavePotionUsed ? null : action.saveId
-      const killId = state.wizardKillPotionUsed ? null : action.killId
+    // The Wizard answers the save potion first, then the kill potion. A used-up potion's answer is nobody.
+    case "WIZARD_SAVE": {
+      const event = state.currentNightEvent
+      if (phase !== "night_wizard" || hasHadTurn(state) || event.wizardSaved !== undefined) return state
+      const saveId = state.wizardSavePotionUsed ? null : action.playerId
+      const answer: Partial<NightEvent> = { wizardSaved: saveId }
+      // With the kill potion gone there's nothing left to ask
+      if (state.wizardKillPotionUsed) answer.wizardKilled = null
       return {
         ...state,
-        currentNightEvent: { ...state.currentNightEvent, wizardSaved: saveId, wizardKilled: killId },
+        currentNightEvent: { ...event, ...answer },
         wizardSavePotionUsed: state.wizardSavePotionUsed || saveId !== null,
+      }
+    }
+
+    case "WIZARD_KILL": {
+      const event = state.currentNightEvent
+      if (phase !== "night_wizard" || hasHadTurn(state)) return state
+      const killId = state.wizardKillPotionUsed ? null : action.playerId
+      return {
+        ...state,
+        currentNightEvent: { ...event, wizardSaved: event.wizardSaved ?? null, wizardKilled: killId },
         wizardKillPotionUsed: state.wizardKillPotionUsed || killId !== null,
       }
     }
@@ -347,8 +372,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return advanceNight(state)
     }
 
+    // The game master read a line and the table did what it said, like closing their eyes
+    case "SAID": {
+      if (hasSaid(state, action.cue)) return state
+      return { ...state, said: [...state.said, action.cue] }
+    }
+
     case "START_DAY": {
       if (phase !== "night_results") return state
+      // After a night that ended the game comes the winner, not a day
+      const winPhase = checkWinCondition(state.players)
+      if (winPhase) return { ...state, currentPhase: winPhase }
       return { ...state, currentPhase: { type: "day_vote" }, currentDay: state.currentNight }
     }
 
@@ -364,8 +398,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           { day: state.currentDay, eliminated: action.playerId, revealedRole: player?.role ?? null },
         ],
       }
-      const winPhase = checkWinCondition(players)
-      if (winPhase) return { ...updated, currentPhase: winPhase }
+      // The village hears who's out before hearing who won
       return updated
     }
 
@@ -380,6 +413,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case "START_NEXT_NIGHT": {
       if (phase !== "day_vote") return state
+      // After a vote that ended the game comes the winner, not a night
+      const winPhase = checkWinCondition(state.players)
+      if (winPhase) return { ...state, currentPhase: winPhase }
       const nextNight = state.currentNight + 1
       // The bitten Baby Wolf joins the pack tonight
       const transform = state.babyWolfTransformNight === nextNight

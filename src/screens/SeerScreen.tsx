@@ -1,12 +1,14 @@
 import { useState } from "react"
+import type { GameState } from "../game/types"
 import { roleName } from "../game/roles"
+import { hasHadTurn, hasSaid } from "../game/reducer"
 import { alivePlayers, findRole, getPlayer, playerName } from "../game/selectors"
-import { closeEyes, nightQuestion, openEyes } from "../game/script"
+import { nightQuestion, openEyes } from "../game/script"
 import { ActionBar, Avatar, Button, IconTile, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
 import { ROLE_ICON } from "../components/icons"
 import { asList, cx } from "../lib/cx"
-import { DeadRoleStep, IdentifyStep, NextStepButton, nightEyebrow } from "./night"
+import { CloseEyesStep, DeadRoleStep, IdentifyStep, WakeStep, needsWake, nightEyebrow } from "./night"
 import type { ScreenProps } from "./props"
 
 export function SeerScreen({ state, dispatch }: ScreenProps) {
@@ -35,12 +37,33 @@ export function SeerScreen({ state, dispatch }: ScreenProps) {
         state={state}
         dispatch={dispatch}
         role="seer"
-        opening={[]}
       />
     )
   }
 
-  if (state.currentNightEvent.seerChecked) {
+  if (needsWake(state)) {
+    return (
+      <WakeStep
+        state={state}
+        dispatch={dispatch}
+        role="seer"
+        title={name}
+        subtitle={`${seer.name} wakes up.`}
+      />
+    )
+  }
+
+  if (!hasHadTurn(state)) {
+    return (
+      <SeerPick
+        state={state}
+        dispatch={dispatch}
+      />
+    )
+  }
+
+  // The answer first, then "close your eyes" on a screen of its own
+  if (!hasSaid(state, "answer")) {
     return (
       <SeerResult
         state={state}
@@ -50,22 +73,28 @@ export function SeerScreen({ state, dispatch }: ScreenProps) {
   }
 
   return (
-    <SeerPick
+    <CloseEyesStep
       state={state}
       dispatch={dispatch}
+      role="seer"
+      title={name}
+      subtitle={seerSaw(state, seer.name)}
     />
   )
+}
+
+// What the Seer learned tonight
+function seerSaw(state: GameState, who: string): string {
+  const checked = playerName(state, state.currentNightEvent.seerChecked)
+  const wolf = roleName("wolf", state.roleNames).toLowerCase()
+  if (state.currentNightEvent.seerResult === "wolf") return `${who} saw that ${checked} is a ${wolf}.`
+  return `${who} saw that ${checked} is not a ${wolf}.`
 }
 
 function SeerPick({ state, dispatch }: ScreenProps) {
   const [selected, setSelected] = useState<string | null>(null)
   const name = roleName("seer", state.roleNames)
   const seer = findRole(state, "seer")
-
-  // On Night 1 the Seer already opened their eyes to be identified
-  const lines: string[] = []
-  if (state.currentNight > 1) lines.push(openEyes(state, "seer"))
-  lines.push(nightQuestion(state, "seer"))
 
   return (
     <>
@@ -77,7 +106,7 @@ function SeerPick({ state, dispatch }: ScreenProps) {
           subtitle={`${seer?.name} checks one player.`}
           role="seer"
         />
-        <ScriptCard lines={lines} />
+        <ScriptCard lines={[nightQuestion(state, "seer")]} />
         <Instruction>Tap the player they point at</Instruction>
         <PlayerGrid
           players={alivePlayers(state).filter((p) => p.id !== seer?.id)}
@@ -148,16 +177,9 @@ function SeerResult({ state, dispatch }: ScreenProps) {
             {!isWolf && "Not a wolf"}
           </div>
         </div>
-        <ScriptCard
-          lines={[closeEyes(state, "seer")]}
-          tone="mist"
-        />
       </Screen>
       <ActionBar>
-        <NextStepButton
-          state={state}
-          dispatch={dispatch}
-        />
+        <Button onClick={() => dispatch({ type: "SAID", cue: "answer" })}>Next</Button>
       </ActionBar>
     </>
   )

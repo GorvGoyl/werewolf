@@ -1,5 +1,4 @@
-import type { ReactNode } from "react"
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import type { Death, GameState } from "../game/types"
 import { roleName } from "../game/roles"
 import { hasHadTurn } from "../game/reducer"
@@ -7,23 +6,16 @@ import { getPlayersInDanger } from "../game/deaths"
 import { alivePlayers, findRole, playerName } from "../game/selectors"
 import { causeText } from "../game/text"
 import { killQuestion, noPotionsLine, openEyes, saveQuestion } from "../game/script"
-import {
-  ActionBar,
-  Avatar,
-  Button,
-  Instruction,
-  Screen,
-  ScreenTitle,
-  ScriptCard,
-  SectionLabel,
-} from "../components/ui"
+import { ActionBar, Button, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
+import type { Tone } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
 import { Icon, ROLE_ICON } from "../components/icons"
 import { asList, cx } from "../lib/cx"
 import { haptic } from "../lib/haptics"
-import { CloseEyesStep, DeadRoleStep, IdentifyStep, nightEyebrow } from "./night"
+import { CloseEyesStep, DeadRoleStep, IdentifyStep, WakeStep, needsWake, nightEyebrow } from "./night"
 import type { ScreenProps } from "./props"
 
+// One potion at a time: the save potion's question, then the kill potion's, each on its own screen
 export function WizardScreen({ state, dispatch }: ScreenProps) {
   const name = roleName("wizard", state.roleNames)
   const wizard = findRole(state, "wizard")
@@ -51,7 +43,18 @@ export function WizardScreen({ state, dispatch }: ScreenProps) {
         state={state}
         dispatch={dispatch}
         role="wizard"
-        opening={[]}
+      />
+    )
+  }
+
+  if (needsWake(state)) {
+    return (
+      <WakeStep
+        state={state}
+        dispatch={dispatch}
+        role="wizard"
+        title={name}
+        subtitle={`${wizard.name} wakes up.`}
       />
     )
   }
@@ -68,8 +71,25 @@ export function WizardScreen({ state, dispatch }: ScreenProps) {
     )
   }
 
+  // A used-up potion isn't asked about
+  if (state.currentNightEvent.wizardSaved === undefined && !state.wizardSavePotionUsed) {
+    return (
+      <SavePotion
+        state={state}
+        dispatch={dispatch}
+      />
+    )
+  }
+  if (!state.wizardKillPotionUsed) {
+    return (
+      <KillPotion
+        state={state}
+        dispatch={dispatch}
+      />
+    )
+  }
   return (
-    <WizardPotions
+    <NoPotions
       state={state}
       dispatch={dispatch}
     />
@@ -86,144 +106,143 @@ function potionsUsed(state: GameState, who: string): string {
   return `${who} used no potion.`
 }
 
-function wizardLines(state: GameState, danger: Death[]): string[] {
-  const lines: string[] = []
-  // On Night 1 the Wizard already opened their eyes to be identified
-  if (state.currentNight > 1) lines.push(openEyes(state, "wizard"))
-  if (!state.wizardSavePotionUsed) lines.push(saveQuestion(state, danger.length))
-  if (!state.wizardKillPotionUsed) lines.push(killQuestion(state))
-  if (state.wizardSavePotionUsed && state.wizardKillPotionUsed) lines.push(noPotionsLine(state))
-  return lines
+type PotionTitleProps = { state: GameState; subtitle: string }
+
+function PotionTitle({ state, subtitle }: PotionTitleProps) {
+  return (
+    <ScreenTitle
+      eyebrow={nightEyebrow(state)}
+      icon={ROLE_ICON.wizard}
+      title={roleName("wizard", state.roleNames)}
+      subtitle={subtitle}
+      role="wizard"
+    />
+  )
 }
 
-function potionsLeft(name: string | undefined, canSave: boolean, canKill: boolean): string {
-  if (!canSave && !canKill) return `${name} has no potions left.`
-  return `${name} can use a potion.`
+function saveLabel(state: GameState, saveId: string | null, dying: number): string {
+  if (saveId) return `Save ${playerName(state, saveId)}`
+  if (dying === 0) return "Next"
+  return "Don't save anyone"
 }
 
-function confirmLabel(state: GameState, saveId: string | null, killId: string | null): string {
-  const parts: string[] = []
-  if (saveId) parts.push(`Save ${playerName(state, saveId)}`)
-  if (killId) parts.push(`Kill ${playerName(state, killId)}`)
-  if (parts.length === 0) return "No potion tonight"
-  return parts.join(" · ")
-}
-
-function WizardPotions({ state, dispatch }: ScreenProps) {
+function SavePotion({ state, dispatch }: ScreenProps) {
   const [saveId, setSaveId] = useState<string | null>(null)
-  const [killing, setKilling] = useState(false)
-  const [killId, setKillId] = useState<string | null>(null)
-  const killGridRef = useRef<HTMLDivElement>(null)
-
-  // The players to poison open below the fold, so bring them into view
-  useEffect(() => {
-    if (killing) killGridRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
-  }, [killing])
-
-  const rn = state.roleNames
-  const name = roleName("wizard", rn)
   const wizard = findRole(state, "wizard")
   const danger = getPlayersInDanger(state.players, state.currentNightEvent)
-  const canSave = !state.wizardSavePotionUsed
-  const canKill = !state.wizardKillPotionUsed
 
   // Saving the attacked Courtesan also saves her guest
   const courtesan = findRole(state, "courtesan")
   const guestAtRisk = danger.find((d) => d.cause === "at_courtesan")
 
-  function toggleKilling() {
-    if (killing) setKillId(null)
-    setKilling(!killing)
-  }
-
-  const killTargets = alivePlayers(state).filter((p) => p.id !== wizard?.id)
-  const waitingForKill = killing && !killId
+  let tone: Tone = "moon"
+  if (saveId) tone = "leaf"
 
   return (
     <>
       <Screen>
-        <ScreenTitle
-          eyebrow={nightEyebrow(state)}
-          icon={ROLE_ICON.wizard}
-          title={name}
-          subtitle={potionsLeft(wizard?.name, canSave, canKill)}
-          role="wizard"
+        <PotionTitle
+          state={state}
+          subtitle={`${wizard?.name} decides on the save potion.`}
         />
-        <ScriptCard lines={wizardLines(state, danger)} />
-
-        <SectionLabel icon="skull">Dying tonight</SectionLabel>
-        {danger.length === 0 && <EmptyNote>Nobody. The attack kills no one tonight.</EmptyNote>}
+        <ScriptCard lines={[saveQuestion(state, danger.length)]} />
         {danger.length > 0 && (
-          <div className="space-y-2">
-            {danger.map((d) => (
-              <DangerRow
-                key={d.playerId}
-                name={playerName(state, d.playerId)}
-                cause={causeText(d.cause, rn)}
-              />
-            ))}
-          </div>
-        )}
-
-        <SectionLabel icon="heal">Save potion</SectionLabel>
-        {!canSave && <EmptyNote>Already used.</EmptyNote>}
-        {canSave && danger.length === 0 && <EmptyNote>Nobody to save tonight.</EmptyNote>}
-        {canSave && danger.length > 0 && (
-          <div className="grid gap-2">
-            {danger.map((d) => (
+          <>
+            <Instruction>Point at who&apos;s dying, then tap the answer</Instruction>
+            <div className="grid gap-2">
+              {danger.map((d) => (
+                <Choice
+                  key={d.playerId}
+                  selected={saveId === d.playerId}
+                  tone="leaf"
+                  onClick={() => setSaveId(d.playerId)}
+                  title={`Save ${playerName(state, d.playerId)}`}
+                  detail={saveDetail(state, d, courtesan?.id, guestAtRisk)}
+                />
+              ))}
               <Choice
-                key={d.playerId}
-                selected={saveId === d.playerId}
-                tone="leaf"
-                onClick={() => setSaveId(d.playerId)}
-                title={`Save ${playerName(state, d.playerId)}`}
-                detail={saveDetail(state, d, courtesan?.id, guestAtRisk)}
+                selected={saveId === null}
+                tone="mist"
+                onClick={() => setSaveId(null)}
+                title="Don't save anyone"
               />
-            ))}
-            <Choice
-              selected={saveId === null}
-              tone="mist"
-              onClick={() => setSaveId(null)}
-              title="Don't save anyone"
-            />
-          </div>
-        )}
-
-        <SectionLabel icon="poison">Kill potion</SectionLabel>
-        {!canKill && <EmptyNote>Already used.</EmptyNote>}
-        {canKill && (
-          <Choice
-            selected={killing}
-            tone="blood"
-            onClick={toggleKilling}
-            title="Use the kill potion"
-            detail="Then tap who they point at"
-          />
-        )}
-        {canKill && killing && (
-          <div
-            ref={killGridRef}
-            className="mt-3 scroll-mb-44 scroll-mt-36">
-            <Instruction tone="blood">Tap who the {name} wants to kill</Instruction>
-            <PlayerGrid
-              players={killTargets}
-              selectedIds={asList(killId)}
-              onSelect={setKillId}
-              tone="blood"
-              showRoles={state.showRoleBadges}
-              babyWolfPlayerId={state.babyWolfPlayerId}
-            />
-          </div>
+            </div>
+          </>
         )}
       </Screen>
       <ActionBar>
         <Button
-          disabled={waitingForKill}
-          icon={!waitingForKill && ROLE_ICON.wizard}
-          onClick={() => dispatch({ type: "WIZARD_DECIDE", saveId, killId })}>
-          {waitingForKill && "Tap who to kill"}
-          {!waitingForKill && confirmLabel(state, saveId, killId)}
+          tone={tone}
+          icon={saveId !== null && "heal"}
+          onClick={() => dispatch({ type: "WIZARD_SAVE", playerId: saveId })}>
+          {saveLabel(state, saveId, danger.length)}
         </Button>
+      </ActionBar>
+    </>
+  )
+}
+
+function KillPotion({ state, dispatch }: ScreenProps) {
+  const [killId, setKillId] = useState<string | null>(null)
+  const wizard = findRole(state, "wizard")
+  const targets = alivePlayers(state).filter((p) => p.id !== wizard?.id)
+
+  // Tapping the same player again takes it back
+  function toggle(id: string) {
+    setKillId((current) => {
+      if (current === id) return null
+      return id
+    })
+  }
+
+  let tone: Tone = "moon"
+  if (killId) tone = "blood"
+
+  return (
+    <>
+      <Screen>
+        <PotionTitle
+          state={state}
+          subtitle={`${wizard?.name} decides on the kill potion.`}
+        />
+        <ScriptCard lines={[killQuestion(state)]} />
+        <Instruction tone="blood">Tap who they point at, if anyone</Instruction>
+        <PlayerGrid
+          players={targets}
+          selectedIds={asList(killId)}
+          onSelect={toggle}
+          tone="blood"
+          showRoles={state.showRoleBadges}
+          babyWolfPlayerId={state.babyWolfPlayerId}
+        />
+      </Screen>
+      <ActionBar>
+        <Button
+          tone={tone}
+          icon={killId !== null && "poison"}
+          onClick={() => dispatch({ type: "WIZARD_KILL", playerId: killId })}>
+          {killId && `Poison ${playerName(state, killId)}`}
+          {!killId && "Don't poison anyone"}
+        </Button>
+      </ActionBar>
+    </>
+  )
+}
+
+// Both potions are used up, and the Wizard still hears so, like on any other night
+function NoPotions({ state, dispatch }: ScreenProps) {
+  const wizard = findRole(state, "wizard")
+  return (
+    <>
+      <Screen>
+        <PotionTitle
+          state={state}
+          subtitle={`${wizard?.name} has no potions left.`}
+        />
+        <ScriptCard lines={[noPotionsLine(state)]} />
+      </Screen>
+      <ActionBar>
+        <Button onClick={() => dispatch({ type: "WIZARD_KILL", playerId: null })}>Next</Button>
       </ActionBar>
     </>
   )
@@ -240,24 +259,6 @@ function saveDetail(
     return `${cause} · also saves ${playerName(state, guestAtRisk.playerId)}`
   }
   return cause
-}
-
-type DangerRowProps = { name: string; cause: string }
-
-function DangerRow({ name, cause }: DangerRowProps) {
-  return (
-    <div className="flex min-h-16 items-center gap-3 rounded-2xl border border-blood-500/25 bg-blood-500/10 px-3 py-2.5">
-      <Avatar name={name} />
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[16px] font-semibold text-mist-100">{name}</div>
-        <div className="text-[14px] leading-snug text-blood-300">{cause}</div>
-      </div>
-      <Icon
-        name="skull"
-        className="size-8"
-      />
-    </div>
-  )
 }
 
 type ChoiceProps = {
@@ -315,8 +316,4 @@ function Choice({ selected, tone, onClick, title, detail }: ChoiceProps) {
       </span>
     </button>
   )
-}
-
-function EmptyNote({ children }: { children: ReactNode }) {
-  return <div className="rounded-2xl bg-night-800/50 px-4 py-3.5 text-[15px] text-mist-400">{children}</div>
 }

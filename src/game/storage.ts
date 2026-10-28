@@ -1,4 +1,4 @@
-import type { GameConfig, GameState, Player, Role, RoleNames } from "./types"
+import type { Cue, GameConfig, GameState, Player, Role, RoleNames } from "./types"
 import { DEFAULT_GAME_CONFIG } from "./types"
 import { createInitialState, normalizeName, rememberNames, gameReducer } from "./reducer"
 
@@ -45,6 +45,13 @@ function sanitizeConfig(value: unknown): GameConfig {
     hasWizard: value.hasWizard !== false,
     hasSeer: value.hasSeer !== false,
   }
+}
+
+const CUES: Cue[] = ["nightfall", "wake", "answer", "dawn", "discuss"]
+
+function sanitizeCues(value: unknown): Cue[] {
+  if (!Array.isArray(value)) return []
+  return CUES.filter((cue) => value.includes(cue))
 }
 
 function sanitizeRoleNames(value: unknown): RoleNames {
@@ -98,7 +105,7 @@ export function sanitizeState(value: unknown): GameState | null {
     }
   }
 
-  return { ...base, ...(value as Partial<GameState>), ...settings, players }
+  return { ...base, ...(value as Partial<GameState>), ...settings, players, said: sanitizeCues(value.said) }
 }
 
 export function loadState(): GameState | null {

@@ -502,16 +502,24 @@ export function noPotionsLine(state: GameState): string {
   return say(state, "no_potions", NO_POTIONS, state.currentNight, { role: roleName("wizard", state.roleNames) })
 }
 
-// Everyone wakes up and hears who died
-export function dawnLines(state: GameState, deaths: Death[]): string[] {
-  const wake = say(state, "dawn", DAWN, state.currentNight)
-  if (deaths.length === 0) return [wake, say(state, "nobody_died", NOBODY_DIED, state.currentNight)]
-  const names = joinNames(deaths.map((d) => playerName(state, d.playerId)))
-  return [wake, say(state, "died", DIED, state.currentNight, { names })]
+// Everyone wakes up, then hears who died
+export function dawnLine(state: GameState): string {
+  return say(state, "dawn", DAWN, state.currentNight)
 }
 
-export function dayLines(state: GameState): string[] {
-  return [say(state, "discuss", DISCUSS, state.currentDay), say(state, "vote", VOTE, state.currentDay)]
+export function deathsLine(state: GameState, deaths: Death[]): string {
+  if (deaths.length === 0) return say(state, "nobody_died", NOBODY_DIED, state.currentNight)
+  const names = joinNames(deaths.map((d) => playerName(state, d.playerId)))
+  return say(state, "died", DIED, state.currentNight, { names })
+}
+
+// The village talks, then votes
+export function discussLine(state: GameState): string {
+  return say(state, "discuss", DISCUSS, state.currentDay)
+}
+
+export function voteLine(state: GameState): string {
+  return say(state, "vote", VOTE, state.currentDay)
 }
 
 export function votedOutLine(state: GameState, name: string): string {
