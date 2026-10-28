@@ -1,8 +1,10 @@
-import type { PointerEvent, ReactNode } from "react"
+import type { PointerEvent, ReactNode, RefObject } from "react"
 import { useEffect, useRef } from "react"
 import type { Player, Role } from "../game/types"
+import type { Team } from "../game/roles"
 import { cx } from "../lib/cx"
 import { haptic } from "../lib/haptics"
+import { useShowRole } from "../lib/useShowRole"
 import type { IconName } from "./icons"
 import { Icon, ROLE_ICON, isGlyph } from "./icons"
 
@@ -57,6 +59,12 @@ export const ROLE_TONE: Record<Role, Tone> = {
   wizard: "leaf",
   seer: "leaf",
   villager: "mist",
+}
+
+export const TEAM_TONE: Record<Team, Tone> = {
+  wolves: "blood",
+  village: "leaf",
+  wildcard: "sun",
 }
 
 // A Baby Wolf who joined the pack is a wolf now, so red
@@ -117,12 +125,15 @@ type ScreenTitleProps = {
   subtitle?: ReactNode
   tone?: Tone
   muted?: boolean
+  // The role this screen is about: tapping the title opens its card
+  role?: Role
 }
 
-export function ScreenTitle({ eyebrow, icon, title, subtitle, tone = "moon", muted = false }: ScreenTitleProps) {
+export function ScreenTitle({ eyebrow, icon, title, subtitle, tone = "moon", muted = false, role }: ScreenTitleProps) {
+  const showRole = useShowRole()
   return (
     <header className="mb-5">
-      <div className="flex items-center gap-3.5">
+      <div className="relative flex items-center gap-3.5">
         {icon && (
           <IconTile
             icon={icon}
@@ -135,7 +146,23 @@ export function ScreenTitle({ eyebrow, icon, title, subtitle, tone = "moon", mut
           {eyebrow && (
             <div className={cx("text-[12px] font-bold uppercase tracking-[0.16em]", TEXT[tone])}>{eyebrow}</div>
           )}
-          <h1 className="text-[28px] font-bold leading-tight tracking-tight text-mist-100">{title}</h1>
+          <h1 className="text-[28px] font-bold leading-tight tracking-tight text-mist-100">
+            {role && (
+              // Its touch area covers the picture too
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                onClick={() => showRole(role)}
+                className="text-left after:absolute after:-inset-2 after:rounded-3xl active:after:bg-white/5">
+                {title}
+                <Icon
+                  name="info"
+                  className="ml-2 inline-block size-6 align-[-0.1em]"
+                />
+              </button>
+            )}
+            {!role && title}
+          </h1>
         </div>
       </div>
       {subtitle && <div className="mt-2.5 text-[16px] leading-snug text-mist-300">{subtitle}</div>}
@@ -378,17 +405,22 @@ export function SectionLabel({ children, icon, action }: SectionLabelProps) {
 
 type RoleChipProps = { role: Role; label: string; count?: number }
 
-// A role and how many cards of it are in play
+// A role and how many cards of it are in play. Tapping it says what the role does.
 export function RoleChip({ role, label, count = 1 }: RoleChipProps) {
+  const showRole = useShowRole()
   return (
-    <span className="flex h-11 items-center gap-2 rounded-full border border-white/10 bg-night-800/80 pl-1.5 pr-3.5 text-[14px] font-semibold text-mist-200">
+    <button
+      type="button"
+      aria-haspopup="dialog"
+      onClick={() => showRole(role)}
+      className="flex h-11 items-center gap-2 rounded-full border border-white/10 bg-night-800/80 pl-1.5 pr-3.5 text-[14px] font-semibold text-mist-200 active:scale-[0.97] active:bg-night-700">
       <Icon
         name={ROLE_ICON[role]}
         className="size-8"
       />
       {label}
       {count > 1 && <span className="text-mist-400">×{count}</span>}
-    </span>
+    </button>
   )
 }
 
@@ -435,15 +467,18 @@ export function Switch({ checked, onChange, label, hint }: SwitchProps) {
   )
 }
 
-// Escape closes a panel, for people on a computer
-function useEscape(onClose: () => void) {
+// Escape closes the panel on top, for people on a computer. A role's card can open over another panel.
+function useEscape(onClose: () => void, panelRef: RefObject<HTMLElement | null>) {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose()
+      if (event.key !== "Escape") return
+      const panels = document.querySelectorAll('[role="dialog"]')
+      if (panels[panels.length - 1] !== panelRef.current) return
+      onClose()
     }
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [onClose])
+  }, [onClose, panelRef])
 }
 
 type SheetProps = {
@@ -457,9 +492,11 @@ type SheetProps = {
 
 // A full-screen panel on top of the game
 export function Sheet({ title, subtitle, onClose, closeLabel = "Close", children, footer }: SheetProps) {
-  useEscape(onClose)
+  const rootRef = useRef<HTMLDivElement>(null)
+  useEscape(onClose, rootRef)
   return (
     <div
+      ref={rootRef}
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -498,9 +535,10 @@ type BottomSheetProps = { label: string; onClose: () => void; children: ReactNod
 
 // A panel that slides up within thumb reach. Tap outside it or drag it down to close.
 export function BottomSheet({ label, onClose, children }: BottomSheetProps) {
+  const rootRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{ startY: number; offset: number } | null>(null)
-  useEscape(onClose)
+  useEscape(onClose, rootRef)
 
   function move(offset: number) {
     const panel = panelRef.current
@@ -536,6 +574,7 @@ export function BottomSheet({ label, onClose, children }: BottomSheetProps) {
 
   return (
     <div
+      ref={rootRef}
       role="dialog"
       aria-modal="true"
       aria-label={label}

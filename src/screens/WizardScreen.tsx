@@ -124,6 +124,7 @@ function WizardPotions({ state, dispatch }: ScreenProps) {
           icon={ROLE_ICON.wizard}
           title={name}
           subtitle={potionsLeft(wizard?.name, canSave, canKill)}
+          role="wizard"
         />
         <ScriptCard
           lines={wizardLines(state, danger)}

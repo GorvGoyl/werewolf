@@ -6,7 +6,9 @@ import { dayLines, votedOutLine } from "../game/script"
 import { ActionBar, Avatar, Button, IconTile, Instruction, Screen, ScreenTitle, ScriptCard } from "../components/ui"
 import { PlayerGrid } from "../components/PlayerGrid"
 import { Icon, ROLE_ICON, playerIcon } from "../components/icons"
+import { cardRole } from "../components/RoleList"
 import { asList, cx } from "../lib/cx"
+import { useShowRole } from "../lib/useShowRole"
 import { DayTimer } from "./DayTimer"
 import type { ScreenProps } from "./props"
 
@@ -85,7 +87,9 @@ function DayVote({ state, dispatch }: ScreenProps) {
 type DayResultProps = ScreenProps & { player: Player }
 
 function DayResult({ state, dispatch, player }: DayResultProps) {
+  const showRole = useShowRole()
   const wolf = isWolf(player.role)
+  const role = cardRole(state, player) ?? "villager"
   return (
     <>
       <Screen>
@@ -125,13 +129,17 @@ function DayResult({ state, dispatch, player }: DayResultProps) {
             {wolf && "Was a wolf"}
             {!wolf && "Was not a wolf"}
           </div>
-          <div className="mt-2 flex items-center gap-1.5 text-[15px] text-mist-300">
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => showRole(role)}
+            className="mt-1 flex min-h-11 items-center gap-1.5 rounded-full px-3 text-[15px] text-mist-300 active:bg-white/10">
             <Icon
               name={playerIcon(player, state.babyWolfPlayerId)}
               className="size-7"
             />
             Card: {roleName(player.role, state.roleNames)}
-          </div>
+          </button>
         </div>
         <ScriptCard
           lines={[votedOutLine(state, player.name)]}

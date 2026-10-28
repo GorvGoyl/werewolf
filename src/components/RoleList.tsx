@@ -1,6 +1,7 @@
-import type { GameState, Player } from "../game/types"
+import type { GameState, Player, Role } from "../game/types"
 import { ROLE_ORDER, isWolf, roleName } from "../game/roles"
 import { cx } from "../lib/cx"
+import { useShowRole } from "../lib/useShowRole"
 import { playerIcon } from "./icons"
 import { Avatar, IconTile, SectionLabel, playerTone, toneText } from "./ui"
 
@@ -39,6 +40,12 @@ export function deathLabel(state: GameState, playerId: string): string | null {
   return null
 }
 
+// The role whose card explains this player. A Baby Wolf who joined the pack keeps the Baby Wolf's.
+export function cardRole(state: GameState, player: Player): Role | null {
+  if (player.id === state.babyWolfPlayerId) return "baby_wolf"
+  return player.role
+}
+
 export function roleLabel(state: GameState, player: Player): string {
   const rn = state.roleNames
   if (player.role === null) return "?"
@@ -75,34 +82,47 @@ export function RoleList({ state }: Props) {
 
 type RoleRowProps = { state: GameState; player: Player }
 
+// Tapping a player whose role is known opens that role's card
 function RoleRow({ state, player }: RoleRowProps) {
+  const showRole = useShowRole()
   const death = deathLabel(state, player.id)
   const tone = playerTone(player)
-  return (
-    <div
-      className={cx(
-        "flex min-h-16 items-center gap-3 rounded-2xl border border-white/5 bg-night-800/80 px-3 py-2.5",
-        !player.isAlive && "opacity-55 grayscale",
-      )}>
+  const role = cardRole(state, player)
+  const className = cx(
+    "flex min-h-16 w-full items-center gap-3 rounded-2xl border border-white/5 bg-night-800/80 px-3 py-2.5 text-left",
+    !player.isAlive && "opacity-55 grayscale",
+  )
+  const content = (
+    <>
       <Avatar name={player.name} />
-      <div className="min-w-0 flex-1">
-        <div
+      <span className="min-w-0 flex-1">
+        <span
           className={cx(
-            "truncate text-[16px] font-semibold text-mist-100",
+            "block truncate text-[16px] font-semibold text-mist-100",
             !player.isAlive && "line-through decoration-2",
           )}>
           {player.name}
-        </div>
-        <div className="truncate text-[14px]">
+        </span>
+        <span className="block truncate text-[14px]">
           <span className={cx("font-medium", toneText(tone))}>{roleLabel(state, player)}</span>
           {death && <span className="text-mist-400"> · {death}</span>}
-        </div>
-      </div>
+        </span>
+      </span>
       <IconTile
         icon={playerIcon(player, state.babyWolfPlayerId)}
         tone={tone}
         size="sm"
       />
-    </div>
+    </>
+  )
+  if (!role) return <div className={className}>{content}</div>
+  return (
+    <button
+      type="button"
+      aria-haspopup="dialog"
+      onClick={() => showRole(role)}
+      className={cx(className, "active:bg-night-700")}>
+      {content}
+    </button>
   )
 }

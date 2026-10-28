@@ -75,6 +75,7 @@ function SeerPick({ state, dispatch }: ScreenProps) {
           icon={ROLE_ICON.seer}
           title={name}
           subtitle={`${seer?.name} checks one player.`}
+          role="seer"
         />
         <ScriptCard lines={lines} />
         <Instruction>Tap the player they point at</Instruction>
@@ -115,6 +116,7 @@ function SeerResult({ state, dispatch }: ScreenProps) {
           icon={ROLE_ICON.seer}
           title={name}
           subtitle={`Show the ${name} the answer.`}
+          role="seer"
         />
         <div
           className={cx(

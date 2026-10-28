@@ -81,6 +81,7 @@ export function IdentifyStep({
           icon={ROLE_ICON[role]}
           title={title}
           tone={tone}
+          role={role}
         />
         <ScriptCard
           lines={lines}
@@ -133,6 +134,7 @@ export function DeadRoleStep({ state, dispatch, role, opening }: DeadRoleStepPro
           subtitle={`The ${name} is dead.`}
           tone="mist"
           muted
+          role={role}
         />
         <ScriptCard
           lines={[...opening, openEyes(state, role)]}

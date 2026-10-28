@@ -115,6 +115,7 @@ function WolvesAttack({ state, dispatch }: ScreenProps) {
           title={wolves}
           subtitle={`${joinNames(pack.map((p) => p.name))} pick a victim.`}
           tone="blood"
+          role="wolf"
         />
         {joining && (
           <Callout

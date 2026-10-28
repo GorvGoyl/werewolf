@@ -1,16 +1,18 @@
-import type { GameState, NightStep, RoleNames } from "../game/types"
+import type { GameState, NightStep, Role, RoleNames } from "../game/types"
 import { roleName, rolePlural } from "../game/roles"
 import { getNightSteps } from "../game/reducer"
 import { cx } from "../lib/cx"
+import { useShowRole } from "../lib/useShowRole"
 import type { IconName } from "./icons"
 import { Icon, ROLE_ICON } from "./icons"
 
-const STEP_ICON: Record<NightStep, IconName> = {
-  night_courtesan: ROLE_ICON.courtesan,
-  night_baby_wolf: ROLE_ICON.baby_wolf,
-  night_wolves: ROLE_ICON.wolf,
-  night_wizard: ROLE_ICON.wizard,
-  night_seer: ROLE_ICON.seer,
+// Who wakes up at each step
+const STEP_ROLE: Record<NightStep, Role> = {
+  night_courtesan: "courtesan",
+  night_baby_wolf: "baby_wolf",
+  night_wolves: "wolf",
+  night_wizard: "wizard",
+  night_seer: "seer",
 }
 
 const GLOW = {
@@ -36,16 +38,25 @@ function stepName(step: NightStep, rn: RoleNames): string {
   return roleName("seer", rn)
 }
 
-function ariaStep(isCurrent: boolean): "step" | undefined {
-  if (isCurrent) return "step"
+type StepState = "done" | "current" | "next"
+
+function stepState(index: number, current: number): StepState {
+  if (index < current) return "done"
+  if (index === current) return "current"
+  return "next"
+}
+
+function ariaStep(state: StepState): "step" | undefined {
+  if (state === "current") return "step"
   return undefined
 }
 
-type Item = { key: string; icon: IconName; label: string; glow: string }
+type Item = { key: string; icon: IconName; label: string; glow: string; role?: Role }
 
 type Props = { state: GameState }
 
-// The night's wake-up order: done steps faded, the current one glowing, the rest in grey
+// The night's wake-up order: done steps faded, the current one glowing, the rest in grey.
+// Tapping a role says what it does.
 export function NightProgress({ state }: Props) {
   const steps = getNightSteps(state)
   const phase = state.currentPhase.type
@@ -55,9 +66,10 @@ export function NightProgress({ state }: Props) {
   const items: Item[] = [
     ...steps.map((step) => ({
       key: step,
-      icon: STEP_ICON[step],
+      icon: ROLE_ICON[STEP_ROLE[step]],
       label: stepName(step, state.roleNames),
       glow: STEP_GLOW[step],
+      role: STEP_ROLE[step],
     })),
     { key: "dawn", icon: "sunrise", label: "Dawn", glow: GLOW.sun },
   ]
@@ -80,23 +92,55 @@ export function NightProgress({ state }: Props) {
               )}
             />
           )}
-          <span
-            title={item.label}
-            aria-label={item.label}
-            aria-current={ariaStep(index === current)}
-            className={cx(
-              "flex size-10 shrink-0 items-center justify-center rounded-full border transition-all",
-              index === current && cx("scale-110", item.glow),
-              index < current && "border-moon-500/40 bg-moon-500/10 opacity-60",
-              index > current && "border-white/10 bg-night-800/60 opacity-40 grayscale",
-            )}>
-            <Icon
-              name={item.icon}
-              className="size-[30px]"
-            />
-          </span>
+          <StepIcon
+            item={item}
+            state={stepState(index, current)}
+          />
         </li>
       ))}
     </ol>
+  )
+}
+
+type StepIconProps = { item: Item; state: StepState }
+
+function StepIcon({ item, state }: StepIconProps) {
+  const showRole = useShowRole()
+  const role = item.role
+  const className = cx(
+    "flex size-10 shrink-0 items-center justify-center rounded-full border transition-all",
+    state === "current" && cx("scale-110", item.glow),
+    state === "done" && "border-moon-500/40 bg-moon-500/10 opacity-60",
+    state === "next" && "border-white/10 bg-night-800/60 opacity-40 grayscale",
+  )
+  const icon = (
+    <Icon
+      name={item.icon}
+      className="size-[30px]"
+    />
+  )
+  if (!role) {
+    return (
+      <span
+        title={item.label}
+        aria-label={item.label}
+        aria-current={ariaStep(state)}
+        className={className}>
+        {icon}
+      </span>
+    )
+  }
+  // The touch area reaches past the circle, to a full fingertip
+  return (
+    <button
+      type="button"
+      title={item.label}
+      aria-label={`${item.label}: what they do`}
+      aria-haspopup="dialog"
+      aria-current={ariaStep(state)}
+      onClick={() => showRole(role)}
+      className={cx(className, "relative after:absolute after:-inset-1 active:brightness-125")}>
+      {icon}
+    </button>
   )
 }

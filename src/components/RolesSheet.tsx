@@ -90,6 +90,7 @@ export function RolesSheet({ state, dispatch, onClose }: Props) {
           />
         ))}
       </div>
+      <p className="mt-2.5 text-[13px] text-mist-400">Tap a role or a player to see what the role does.</p>
 
       <RoleList state={state} />
 

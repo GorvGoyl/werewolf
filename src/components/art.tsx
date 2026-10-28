@@ -2393,6 +2393,56 @@ export const ART = {
       />
     </>
   ),
+  // Beside a role's name: tap it to see what the role does
+  info: ({ id, url }) => (
+    <>
+      <defs>
+        <linearGradient
+          id={id("info")}
+          x1="0"
+          y1="0"
+          x2="0"
+          y2="1">
+          <stop
+            offset="0"
+            stopColor="#60b8fa"
+          />
+          <stop
+            offset="1"
+            stopColor="#2563eb"
+          />
+        </linearGradient>
+      </defs>
+      <circle
+        fill={url("info")}
+        cx="32"
+        cy="32"
+        r="27"
+      />
+      <ellipse
+        fill="#fff"
+        fillOpacity=".3"
+        cx="22"
+        cy="16"
+        rx="8"
+        ry="4"
+        transform="rotate(-25 22 16)"
+      />
+      <circle
+        fill="#fff"
+        cx="32"
+        cy="19"
+        r="4.4"
+      />
+      <path
+        fill="none"
+        stroke="#fff"
+        strokeWidth="7.5"
+        strokeLinecap="round"
+        d="M32 29.5V46"
+      />
+    </>
+  ),
 } satisfies Record<string, Art>
 
 export type ArtName = keyof typeof ART

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import type { GameAction, GameState } from "./game/types"
+import type { GameAction, GameState, Role } from "./game/types"
 import { gameReducer, isNightStep, keepSettings, sameName } from "./game/reducer"
 import { eliminatedToday, isGameRunning } from "./game/selectors"
 import type { Boot } from "./game/storage"
@@ -12,8 +12,11 @@ import { RolesSheet } from "./components/RolesSheet"
 import { HistorySheet } from "./components/HistorySheet"
 import { RulesGuide } from "./components/RulesGuide"
 import { RoleNamesEditor } from "./components/RoleNamesEditor"
+import { RoleCard } from "./components/RoleCard"
 import { InstallSheet } from "./components/Install"
 import { promptInstall, useInstallState } from "./lib/install"
+import type { RoleChoice } from "./lib/useShowRole"
+import { ShowRoleContext } from "./lib/useShowRole"
 import { SetupScreen } from "./screens/SetupScreen"
 import { RoleConfigScreen } from "./screens/RoleConfigScreen"
 import { CourtesanScreen } from "./screens/CourtesanScreen"
@@ -28,6 +31,8 @@ import { useWakeLock } from "./lib/useWakeLock"
 import { cx } from "./lib/cx"
 
 type Overlay = "menu" | "new_game" | "game_master" | "hand_over" | "roles" | "history" | "rules" | "names" | "install"
+
+type Card = { role: Role; choice?: RoleChoice }
 
 // Settings changes aren't steps of the game, so undo skips them
 const NOT_UNDOABLE: Array<GameAction["type"]> = [
@@ -61,6 +66,7 @@ export function App({ boot }: Props) {
   const historyRef = useRef<GameState[]>(boot.history)
   const [historyLength, setHistoryLength] = useState(boot.history.length)
   const [overlay, setOverlay] = useState<Overlay | null>(null)
+  const [card, setCard] = useState<Card | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const toastTimerRef = useRef<number | undefined>(undefined)
   const { installed, canPrompt } = useInstallState()
@@ -114,8 +120,30 @@ export function App({ boot }: Props) {
     setOverlay(null)
   }
 
+  // A role's card opens on top of everything, even an overlay, so back closes just the card
+  function showRole(role: Role, choice?: RoleChoice) {
+    if (card === null) window.history.pushState({ overlay, role }, "")
+    if (card !== null) window.history.replaceState({ overlay, role }, "")
+    setCard({ role, choice })
+  }
+
+  function closeCard() {
+    if (window.history.state?.role) {
+      window.history.back()
+      return
+    }
+    setCard(null)
+  }
+
+  // How to play takes the card's place, so closing it goes back to what was under the card
+  function openRulesFromCard() {
+    window.history.replaceState({ overlay: "rules" }, "")
+    setCard(null)
+    setOverlay("rules")
+  }
+
   useEffect(() => {
-    if (window.history.state?.overlay) window.history.replaceState(null, "")
+    if (window.history.state?.overlay || window.history.state?.role) window.history.replaceState(null, "")
     if (boot.openRules) {
       window.history.pushState({ overlay: "rules" }, "")
       setOverlay("rules")
@@ -128,6 +156,8 @@ export function App({ boot }: Props) {
     }
     function onPopState(event: PopStateEvent) {
       setOverlay(event.state?.overlay ?? null)
+      const role: Role | undefined = event.state?.role
+      setCard(role ? { role } : null)
     }
     window.addEventListener("popstate", onPopState)
     return () => window.removeEventListener("popstate", onPopState)
@@ -211,111 +241,123 @@ export function App({ boot }: Props) {
   }
 
   return (
-    <div className="min-h-dvh">
-      <div className={cx("sky", skyClass(state))} />
-      <Header
-        state={state}
-        canUndo={historyLength > 0}
-        onUndo={undo}
-        onOpenRoles={() => openOverlay("roles")}
-        onOpenHistory={() => openOverlay("history")}
-        onOpenMenu={() => openOverlay("menu")}
-      />
-      <CurrentScreen
-        key={`${state.currentPhase.type}:${state.currentNight}:${state.currentDay}`}
-        state={state}
-        dispatch={dispatch}
-        onInstall={install}
-        onPickGameMaster={() => openOverlay("game_master")}
-        onPlayAgain={newGame}
-        onHandOver={() => openOverlay("hand_over")}
-      />
-
-      {overlay === "menu" && (
-        <Menu
-          inGame={state.currentPhase.type !== "setup" && state.currentPhase.type !== "role_config"}
-          installed={installed}
-          canHandOver={state.players.length > 0 || state.gameMaster !== null}
-          onClose={closeOverlay}
-          onOpenRules={() => openOverlay("rules")}
-          onOpenRoleNames={() => openOverlay("names")}
+    <ShowRoleContext value={showRole}>
+      <div className="min-h-dvh">
+        <div className={cx("sky", skyClass(state))} />
+        <Header
+          state={state}
+          canUndo={historyLength > 0}
+          onUndo={undo}
           onOpenRoles={() => openOverlay("roles")}
           onOpenHistory={() => openOverlay("history")}
-          onInstall={installFromMenu}
-          onNewGame={startNewGame}
-          onHandOver={() => openOverlay("hand_over")}
-          onCopyState={() => {
-            closeOverlay()
-            void copyState()
-          }}
+          onOpenMenu={() => openOverlay("menu")}
         />
-      )}
-      {overlay === "new_game" && (
-        <NewGameSheet
-          onClose={closeOverlay}
-          onConfirm={newGame}
-        />
-      )}
-      {overlay === "game_master" && (
-        <GameMasterSheet
-          state={state}
-          onPick={pickGameMaster}
-          onClose={closeOverlay}
-        />
-      )}
-      {overlay === "hand_over" && (
-        <HandOverSheet
-          state={state}
-          onShare={(link) => void shareLink(link)}
-          onClose={closeOverlay}
-        />
-      )}
-      {overlay === "roles" && (
-        <RolesSheet
+        <CurrentScreen
+          key={`${state.currentPhase.type}:${state.currentNight}:${state.currentDay}`}
           state={state}
           dispatch={dispatch}
-          onClose={closeOverlay}
+          onInstall={install}
+          onPickGameMaster={() => openOverlay("game_master")}
+          onPlayAgain={newGame}
+          onHandOver={() => openOverlay("hand_over")}
         />
-      )}
-      {overlay === "history" && (
-        <HistorySheet
-          state={state}
-          onClose={closeOverlay}
-        />
-      )}
-      {overlay === "rules" && (
-        <RulesGuide
-          roleNames={state.roleNames}
-          onClose={closeOverlay}
-        />
-      )}
-      {overlay === "install" && (
-        <InstallSheet
-          onClose={closeOverlay}
-          onInstall={async () => {
-            await promptInstall()
-            closeOverlay()
-          }}
-        />
-      )}
-      {overlay === "names" && (
-        <RoleNamesEditor
-          roleNames={state.roleNames}
-          onClose={closeOverlay}
-          onSave={(roleNames) => {
-            dispatch({ type: "SET_ROLE_NAMES", roleNames })
-            closeOverlay()
-          }}
-        />
-      )}
-      {toast && (
-        <div className="pointer-events-none fixed inset-x-0 top-20 z-50 flex justify-center">
-          <div className="animate-pop rounded-full bg-mist-100 px-4 py-2 text-sm font-semibold text-night-950 shadow-xl">
-            {toast}
+
+        {overlay === "menu" && (
+          <Menu
+            inGame={state.currentPhase.type !== "setup" && state.currentPhase.type !== "role_config"}
+            installed={installed}
+            canHandOver={state.players.length > 0 || state.gameMaster !== null}
+            onClose={closeOverlay}
+            onOpenRules={() => openOverlay("rules")}
+            onOpenRoleNames={() => openOverlay("names")}
+            onOpenRoles={() => openOverlay("roles")}
+            onOpenHistory={() => openOverlay("history")}
+            onInstall={installFromMenu}
+            onNewGame={startNewGame}
+            onHandOver={() => openOverlay("hand_over")}
+            onCopyState={() => {
+              closeOverlay()
+              void copyState()
+            }}
+          />
+        )}
+        {overlay === "new_game" && (
+          <NewGameSheet
+            onClose={closeOverlay}
+            onConfirm={newGame}
+          />
+        )}
+        {overlay === "game_master" && (
+          <GameMasterSheet
+            state={state}
+            onPick={pickGameMaster}
+            onClose={closeOverlay}
+          />
+        )}
+        {overlay === "hand_over" && (
+          <HandOverSheet
+            state={state}
+            onShare={(link) => void shareLink(link)}
+            onClose={closeOverlay}
+          />
+        )}
+        {overlay === "roles" && (
+          <RolesSheet
+            state={state}
+            dispatch={dispatch}
+            onClose={closeOverlay}
+          />
+        )}
+        {overlay === "history" && (
+          <HistorySheet
+            state={state}
+            onClose={closeOverlay}
+          />
+        )}
+        {overlay === "rules" && (
+          <RulesGuide
+            roleNames={state.roleNames}
+            onClose={closeOverlay}
+          />
+        )}
+        {overlay === "install" && (
+          <InstallSheet
+            onClose={closeOverlay}
+            onInstall={async () => {
+              await promptInstall()
+              closeOverlay()
+            }}
+          />
+        )}
+        {overlay === "names" && (
+          <RoleNamesEditor
+            roleNames={state.roleNames}
+            onClose={closeOverlay}
+            onSave={(roleNames) => {
+              dispatch({ type: "SET_ROLE_NAMES", roleNames })
+              closeOverlay()
+            }}
+          />
+        )}
+        {card && (
+          <RoleCard
+            key={card.role}
+            role={card.role}
+            roleNames={state.roleNames}
+            choice={card.choice}
+            onClose={closeCard}
+            onOpenRules={openRulesFromCard}
+          />
+        )}
+        {toast && (
+          <div className="pointer-events-none fixed inset-x-0 top-20 z-50 flex justify-center">
+            <div className="animate-pop rounded-full bg-mist-100 px-4 py-2 text-sm font-semibold text-night-950 shadow-xl">
+              {toast}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </ShowRoleContext>
   )
 }
 

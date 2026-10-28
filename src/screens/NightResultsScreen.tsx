@@ -23,6 +23,8 @@ import {
   playerTone,
 } from "../components/ui"
 import { ROLE_ICON, playerIcon } from "../components/icons"
+import { cardRole } from "../components/RoleList"
+import { useShowRole } from "../lib/useShowRole"
 import type { ScreenProps } from "./props"
 
 function deathsTitle(count: number): string {
@@ -131,8 +133,11 @@ export function NightResultsScreen({ state, dispatch }: ScreenProps) {
 type DeathCardProps = { state: GameState; death: Death }
 
 function DeathCard({ state, death }: DeathCardProps) {
+  const showRole = useShowRole()
   const player = getPlayer(state, death.playerId)
   if (!player) return null
+  // Everyone has a card by dawn
+  const role = cardRole(state, player) ?? "villager"
   return (
     <div className="flex min-h-[72px] animate-pop items-center gap-3 rounded-2xl border border-blood-500/25 bg-blood-500/10 px-3.5 py-3">
       <Avatar name={player.name} />
@@ -140,14 +145,18 @@ function DeathCard({ state, death }: DeathCardProps) {
         <div className="truncate text-[17px] font-semibold text-mist-100">{player.name}</div>
         <div className="text-[14px] leading-snug text-blood-300">{causeText(death.cause, state.roleNames)}</div>
       </div>
-      <div className="flex max-w-24 shrink-0 flex-col items-center gap-1 text-center">
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        onClick={() => showRole(role)}
+        className="-my-1.5 -mr-1.5 flex max-w-24 shrink-0 flex-col items-center gap-1 rounded-xl p-1.5 text-center active:bg-white/10">
         <IconTile
           icon={playerIcon(player, state.babyWolfPlayerId)}
           tone={playerTone(player)}
           size="sm"
         />
-        <div className="text-[12px] leading-tight text-mist-400">{roleName(player.role, state.roleNames)}</div>
-      </div>
+        <span className="text-[12px] leading-tight text-mist-400">{roleName(player.role, state.roleNames)}</span>
+      </button>
     </div>
   )
 }

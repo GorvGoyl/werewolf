@@ -5,9 +5,10 @@ import { getPlayer, getTimeline, wasBabyWolfBitten } from "../game/selectors"
 import { isWolf, roleName, rolePlural } from "../game/roles"
 import { causeText } from "../game/text"
 import { cx } from "../lib/cx"
+import { useShowRole } from "../lib/useShowRole"
 import type { IconName } from "./icons"
 import { Icon, ROLE_ICON, playerIcon } from "./icons"
-import { roleLabel } from "./RoleList"
+import { cardRole, roleLabel } from "./RoleList"
 import type { Tone } from "./ui"
 import { Avatar, IconTile, playerTone, toneText } from "./ui"
 
@@ -295,7 +296,10 @@ type PersonRowProps = { state: GameState; player: Player; children: ReactNode }
 
 // A player who left the game: name and card on top, how they left below
 function PersonRow({ state, player, children }: PersonRowProps) {
+  const showRole = useShowRole()
   const tone = playerTone(player)
+  // Whoever left the game has a card by then
+  const role = cardRole(state, player) ?? "villager"
   return (
     <div className="flex gap-3">
       <Avatar
@@ -305,13 +309,20 @@ function PersonRow({ state, player, children }: PersonRowProps) {
       <div className="min-w-0 flex-1">
         <div className="flex min-h-8 flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="max-w-full truncate text-[16px] font-semibold text-mist-100">{player.name}</span>
-          <span className={cx("flex items-center gap-1 text-[13px] font-semibold", toneText(tone))}>
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => showRole(role)}
+            className={cx(
+              "-mx-1.5 -my-1.5 flex min-h-11 items-center gap-1 rounded-full px-1.5 text-[13px] font-semibold active:bg-white/10",
+              toneText(tone),
+            )}>
             <Icon
               name={playerIcon(player, state.babyWolfPlayerId)}
               className="size-6"
             />
             {roleLabel(state, player)}
-          </span>
+          </button>
         </div>
         <div className="text-[15px] leading-snug">{children}</div>
       </div>

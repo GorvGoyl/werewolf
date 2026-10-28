@@ -80,6 +80,7 @@ function CourtesanInvite({ state, dispatch }: ScreenProps) {
           icon={ROLE_ICON.courtesan}
           title={name}
           subtitle={`${courtesan?.name} picks a guest for the night.`}
+          role="courtesan"
         />
         <ScriptCard
           lines={lines}
