@@ -31,12 +31,13 @@ import type { ScreenProps } from "./props"
 
 type OptionalRoleKey = "hasQueenWolf" | "hasBabyWolf" | "hasCourtesan" | "hasWizard" | "hasSeer"
 
+// The village's helpers first, then the roles that change the wolves
 const OPTIONAL_ROLES: Array<{ key: OptionalRoleKey; role: Role }> = [
-  { key: "hasQueenWolf", role: "queen_wolf" },
-  { key: "hasBabyWolf", role: "baby_wolf" },
-  { key: "hasCourtesan", role: "courtesan" },
   { key: "hasWizard", role: "wizard" },
   { key: "hasSeer", role: "seer" },
+  { key: "hasCourtesan", role: "courtesan" },
+  { key: "hasQueenWolf", role: "queen_wolf" },
+  { key: "hasBabyWolf", role: "baby_wolf" },
 ]
 
 export function RoleConfigScreen({ state, dispatch }: ScreenProps) {
